@@ -37,7 +37,9 @@ Typical setup on the machine where you build:
    - `source export.sh` (esp-matter export so Matter paths and extra tools are configured).
    - Confirm `idf.py` works: `idf.py --version`.
 
-3. **Hardware target**: the script is written for **ESP32-S3** (see [Configuration](#configuration) to change the flow if you use another SoC).
+3. **Fork patch on `connectedhomeip` (required for this example):** this fork does not carry local submodule commits. After submodules are updated, run **`./patches/apply_connectedhomeip_patches.sh`** once (or rely on `ct_build_matter_evse.sh`, which runs the same step automatically). The first patch defers `MatterReportingAttributeChangeCallback` in `mode-base-server` to the system layer so attribute reporting is safe in the energy EVSE / emulator use case. If you use a different `connectedhomeip` commit than the one this fork pins, the patch may fail to apply; refresh or drop it as needed. After the patch is applied, `git status` may list the submodule as **modified**; that is expected—**do not** commit a new `connectedhomeip` pointer in the parent repo unless you are intentionally moving to a different upstream SHA.
+
+4. **Hardware target**: the script is written for **ESP32-S3** (see [Configuration](#configuration) to change the flow if you use another SoC).
 
 ## What the script does
 
@@ -62,6 +64,7 @@ Run all commands from the **repository root** (same directory as the script), af
 1. `source $IDF_PATH/export.sh`
 2. `source ./export.sh` (from this repo root)
 3. `git submodule update --init --recursive` (if you have not already)
+4. `./patches/apply_connectedhomeip_patches.sh` (or skip if you will run `ct_build_matter_evse.sh`, which applies the same patches automatically)
 
 ### Set chip target, then build
 
