@@ -123,7 +123,7 @@ void EnergyEvseDelegateInitCB(void *delegate, uint16_t endpoint_id)
     EnergyEvse::Delegate *energy_evse_delegate = static_cast<EnergyEvse::Delegate*>(delegate);
     uint32_t feature_map = get_feature_map_value(endpoint_id, EnergyEvse::Id);
     energyEvseInstance = new EnergyEvse::Instance(endpoint_id, *energy_evse_delegate, chip::BitMask<EnergyEvse::Feature, uint32_t>(feature_map),
-                            chip::BitMask<EnergyEvse::OptionalAttributes, uint32_t>(), chip::BitMask<EnergyEvse::OptionalCommands, uint32_t>());
+                            chip::BitMask<EnergyEvse::OptionalAttributes, uint32_t>(EnergyEvse::OptionalAttributes::kSupportsUserMaximumChargingCurrent), chip::BitMask<EnergyEvse::OptionalCommands, uint32_t>());
     energyEvseInstance->Init();
 }
 

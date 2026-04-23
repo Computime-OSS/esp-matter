@@ -1,0 +1,69 @@
+/*
+   This example code is in the Public Domain (or CC0 licensed, at your option.)
+
+   Unless required by applicable law or agreed to in writing, this
+   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+   CONDITIONS OF ANY KIND, either express or implied.
+*/
+#include <stdio.h>
+#include <string.h>
+#include <cinttypes>
+
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_console.h"
+
+#include <nvs_flash.h>
+
+#include <esp_matter.h>
+#include <esp_matter_console.h>
+
+#include <common_macros.h>
+#include <app_reset.h>
+
+#include <helpers.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include "freertos/semphr.h"
+
+#include <app/server/CommissioningWindowManager.h>
+#include <app/server/Server.h>
+
+#include "app_cmd.h"
+#include "charger_main.h"
+
+extern "C" void app_main()
+{
+    // esp_log_level_set("*", ESP_LOG_NONE);
+	uint32_t free_dram = esp_get_free_heap_size();
+	uint32_t free_iram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL) - free_dram;
+	DEBUG_CHECKPOINT("Free memory: %" PRIu32 " (DRAM/heap), %" PRIu32 " (IRAM)", free_dram, free_iram);
+	DEBUG_CHECKPOINT("IDF version: %s", esp_get_idf_version());
+
+#if 1
+    /* Initialize the ESP NVS layer */
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        PRINTF_DEBUG("NVS Error, will erased");
+        err = nvs_flash_init();
+    }
+
+    PRINTF_DEBUG("Initializing NVS Flash %s", err == ESP_OK ? "Done" : "Failed");
+#else
+    PRINTF_DEBUG("Initializing NVS Flash maybe in other modules ...");
+#endif
+
+    PRINTF_DEBUG("Initializing Application Driver ...");
+    esp_matter::Charger::core::app_driver_init();
+    
+    DEBUG_CHECKPOINT("Initializing Console Commands ...");
+    esp_matter::Charger::console::init();
+
+#if CONFIG_ENABLE_CHIP_SHELL
+    esp_matter::console::diagnostics_register_commands();
+    esp_matter::console::wifi_register_commands();
+    esp_matter::console::factoryreset_register_commands();
+    esp_matter::console::init();
+#endif
+}

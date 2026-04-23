@@ -1,0 +1,52 @@
+#pragma once
+
+#include <atomic>
+#include <string>
+
+#include "esp_err.h"
+#include "esp_log.h"
+
+#include <common_macros.h>
+#include "soc/io_mux_reg.h"
+
+namespace CT {
+namespace Charger {
+
+enum class ChargerStatus_t
+{
+    INIT,
+    AVAILABLE,
+    PREPARING,
+    CHARGING,
+    SUSPENDED_EVSE,
+    SUSPENDED_EV,
+    FINISHING,
+    RESERVED,
+    UNAVAILABLE,
+    FAULTED,
+};
+
+// enum for auth type
+enum class AuthType_t
+{
+    AUTH_TYPE_NONE = 0,
+    AUTH_TYPE_NFC_CARD,
+    AUTH_TYPE_NFC_W_TIME,
+    AUTH_TYPE_MATTER_CTRL,
+    AUTH_TYPE_MAX
+};
+
+} // namespace Charger
+} // namespace CT
+
+void GetReadableTime(uint32_t matterEpoch_s, char * outStr, size_t outSize);
+
+#define ENABLE_CT_LOG 0
+#if	ENABLE_CT_LOG
+#define PRINTF_DEBUG(format, ...)		ESP_LOGI("CT", "%s(%d)\n" LOG_COLOR(LOG_COLOR_CYAN) format LOG_RESET_COLOR "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#else
+#define PRINTF_DEBUG(format, ...)
+
+#define DEBUG_CHECKPOINT(format, ...)		printf("%s\n" LOG_COLOR(LOG_COLOR_GREEN) format LOG_RESET_COLOR "\n", __FUNCTION__, ##__VA_ARGS__)
+
+#endif	//ENABLE_CT_LOG
