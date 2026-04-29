@@ -11,3 +11,8 @@ out/
 _build/
 tools/chip-tool/
 .zap/
+
+# SonarCloud / SonarQube
+bw-output/
+.sonar_cache/
+.scannerwork/

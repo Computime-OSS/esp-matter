@@ -1,0 +1,125 @@
+name: SonarCloud Analysis
+
+# Triggers:
+#   - push to release/v1.4         -> establishes the baseline
+#   - push to evse-simulator-v1.4  -> persistent feature-branch dashboard
+#   - pull_request to release/v*   -> incremental ("new code") diff analysis
+#   - workflow_dispatch            -> manual run from the Actions tab
+on:
+  push:
+    branches:
+      - 'release/v1.4'
+      - 'evse-simulator-v1.4'
+  pull_request:
+    branches:
+      - 'release/v1.4'
+  workflow_dispatch:
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+    container:
+      image: espressif/esp-matter:latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout (full history required for Sonar blame and PR diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false  # connectedhomeip is excluded from analysis
+
+      - name: Mark workspace as a safe git directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Fetch reference branches for accurate diff
+        run: |
+          git fetch --no-tags origin release/v1.4:refs/remotes/origin/release/v1.4 || true
+          git fetch --no-tags origin evse-simulator-v1.4:refs/remotes/origin/evse-simulator-v1.4 || true
+
+      - name: Install build-wrapper
+        run: |
+          set -e
+          curl -sSLo /tmp/bw.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip -q /tmp/bw.zip -d /opt
+          echo "/opt/build-wrapper-linux-x86" >> "$GITHUB_PATH"
+
+      - name: Initialize connectedhomeip submodule (matching this branch)
+        shell: bash
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+
+          # Init connectedhomeip at the SHA pinned by this branch's .gitmodules.
+          # The container's pre-installed copy was built from main and does
+          # not match release/v1.4's CHIP_SHORT_HASH (causing missing-header
+          # errors like app/util/att-storage.h).
+          git submodule update --init --depth 1 connectedhomeip/connectedhomeip
+
+          # Initialize connectedhomeip's own submodules — esp32 platform only.
+          cd connectedhomeip/connectedhomeip
+          ./scripts/checkout_submodules.py --platform esp32 --shallow
+
+      - name: Build example under build-wrapper
+        shell: bash
+        run: |
+          set -e
+
+          export ESP_MATTER_PATH="$GITHUB_WORKSPACE"
+
+          # Bootstrap Pigweed for connectedhomeip. This downloads CIPD tools
+          # (gn, ninja, clang) into .environment/ and sets the env vars chip's
+          # GN build needs (_PW_ACTUAL_ENVIRONMENT_ROOT, PW_ROOT, PATH).
+          # First run takes 5-10 min; subsequent runs reuse the CIPD cache.
+          cd "$ESP_MATTER_PATH/connectedhomeip/connectedhomeip"
+          source scripts/bootstrap.sh -p esp32
+
+          . "$IDF_PATH/export.sh"
+          . "$ESP_MATTER_PATH/export.sh"
+
+          # Pick the example to build:
+          #  - On evse-simulator-v1.4 / the PR head: build energy_evse so the
+          #    EVSE-specific sources are captured by the build wrapper.
+          #  - On release/v1.4 (where energy_evse does not exist yet): fall
+          #    back to examples/light. This still pulls in components/esp_matter
+          #    so the shared library code gets a baseline.
+          if [ -d "$ESP_MATTER_PATH/examples/energy_evse" ]; then
+            EXAMPLE_NAME="energy_evse"
+            TARGET="esp32s3"
+          elif [ -d "$ESP_MATTER_PATH/examples/light" ]; then
+            EXAMPLE_NAME="light"
+            TARGET="esp32c3"
+          else
+            echo "ERROR: neither examples/energy_evse nor examples/light exists" >&2
+            exit 1
+          fi
+
+          echo "Building examples/$EXAMPLE_NAME for $TARGET"
+          cd "$ESP_MATTER_PATH/examples/$EXAMPLE_NAME"
+          idf.py set-target "$TARGET"
+          build-wrapper-linux-x86-64 \
+            --out-dir "$GITHUB_WORKSPACE/bw-output" \
+            idf.py build
+
+      - name: Install sonar-scanner CLI
+        run: |
+          set -e
+          curl -sSLo /tmp/scanner.zip \
+            https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip -q /tmp/scanner.zip -d /opt
+          echo "/opt/sonar-scanner-5.0.1.3006-linux/bin" >> "$GITHUB_PATH"
+
+      - name: SonarCloud scan
+        shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            sonar-scanner \
+              -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+              -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+              -Dsonar.pullrequest.base=${{ github.base_ref }}
+          else
+            sonar-scanner -Dsonar.branch.name=${{ github.ref_name }}
+          fi
