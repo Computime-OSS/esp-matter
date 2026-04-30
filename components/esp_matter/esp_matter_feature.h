@@ -234,8 +234,8 @@ namespace lighting {
 
 typedef struct config {
     bool global_scene_control;
-    nullable<uint16_t> on_time;
-    nullable<uint16_t> off_wait_time;
+    uint16_t on_time;
+    uint16_t off_wait_time;
     nullable<uint8_t> start_up_on_off;
     config() : global_scene_control(1), on_time(0), off_wait_time(0), start_up_on_off(0) {}
 } config_t;
@@ -468,7 +468,7 @@ esp_err_t add(cluster_t *cluster, config_t *config);
 } /* feature */
 } /* window_covering */
 
-namespace wifi_network_diagnotics {
+namespace wifi_network_diagnostics {
 namespace feature {
 
 namespace packets_counts {
@@ -486,7 +486,41 @@ esp_err_t add(cluster_t *cluster);
 } /* error_counts */
 
 } /* feature */
-} /* wifi_network_diagnotics */
+} /* wifi_network_diagnostics */
+
+namespace thread_network_diagnostics {
+namespace feature {
+
+namespace packets_counts {
+
+uint32_t get_id();
+esp_err_t add(cluster_t *cluster);
+
+} /* packets_counts */
+
+namespace error_counts {
+
+uint32_t get_id();
+esp_err_t add(cluster_t *cluster);
+
+} /* error_counts */
+
+namespace mle_counts {
+
+uint32_t get_id();
+esp_err_t add(cluster_t *cluster);
+
+} /* mle_counts */
+
+namespace mac_counts {
+
+uint32_t get_id();
+esp_err_t add(cluster_t *cluster);
+
+} /* mac_counts */
+
+} /* feature */
+} /* thread_network_diagnostics */
 
 namespace ethernet_network_diagnostics {
 namespace feature {
