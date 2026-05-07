@@ -119,7 +119,14 @@ public:
     std::string statusToString(ChargerStatus_t status) const;
     
     bool onTimeEqual_Second(uint32_t sec);
+
 private:
+    bool checkAuthorizedPreparingState();
+    bool checkAuthorizedActiveChargeState();
+    void runExecPreparingCase();
+    void runExecChargingLikeCase();
+    void applyMatterTargetChargeControls();
+
     ChargerManager();
 };
 

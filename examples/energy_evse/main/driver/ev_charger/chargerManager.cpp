@@ -43,21 +43,15 @@ ChargerStatus_t ChargerManager::findNextChargerStatus(ChargerStatus_t current)
         case ChargerStatus_t::SUSPENDED_EVSE:
         case ChargerStatus_t::SUSPENDED_EV:
         {
-            if(pHwControl->getCableStatus() == HwCableStatus_t::CONNECTED)
-            {
-                if (pHwControl->isCharging()) {
-                    if (pHwControl->isEVDrawing()) {
-                        next = ChargerStatus_t::CHARGING;
-                    } else {
-                        next = ChargerStatus_t::SUSPENDED_EV;
-                    }
-                } else {
-                    next = ChargerStatus_t::FINISHING;
-                }
-            } else {
+            if (pHwControl->getCableStatus() != HwCableStatus_t::CONNECTED) {
                 next = ChargerStatus_t::FINISHING;
+                break;
             }
-
+            if (!pHwControl->isCharging()) {
+                next = ChargerStatus_t::FINISHING;
+                break;
+            }
+            next = pHwControl->isEVDrawing() ? ChargerStatus_t::CHARGING : ChargerStatus_t::SUSPENDED_EV;
             break;
         }
         case ChargerStatus_t::FINISHING:
@@ -289,95 +283,77 @@ void ChargerManager::stopAuthRequest()
 
 bool ChargerManager::checkIsAuthorized()
 {
-    if(status == ChargerStatus_t::PREPARING)
-    {
-        if(config.auth.type == AuthType_t::AUTH_TYPE_NFC_CARD)
-        {
-            if(detectedCard_.empty()) return false;
-
-            if(detectedCard_ == "04482B6A116280") //sample authorized card uid
-            {
-                session.authCardUid_ = detectedCard_;
-                return true;
-            }
-            else
-            {
-                PRINTF_DEBUG("Charging session cannot start for card UID: %s", detectedCard_.c_str());
-            }
-        }
-        else if(config.auth.type == AuthType_t::AUTH_TYPE_MATTER_CTRL)
-        {
-            PRINTF_DEBUG("Matter Control authorization granted.");
-            return true;
-        }
-        else if(config.auth.type == AuthType_t::AUTH_TYPE_NFC_W_TIME)
-        {
-            if(onTimeEqual_Second(1)) {
-                config.auth.timeCnt++;
-                PRINTF_DEBUG("TimeBased: %d", config.auth.timeCnt);
-            }
-
-            if(config.auth.timeCnt >= 5){
-                PRINTF_DEBUG("Times Up, Auto start charging session!");
-                return true;
-            }
-
-            if(detectedCard_.empty()) return false;
-
-            if(detectedCard_ == "04482B6A116280") //sample authorized card uid
-            {
-                session.authCardUid_ = detectedCard_;
-                return true;
-            }
-            else
-            {
-                PRINTF_DEBUG("Charging session cannot start for card UID: %s", detectedCard_.c_str());
-            }
-        }
+    if (status == ChargerStatus_t::PREPARING) {
+        return checkAuthorizedPreparingState();
     }
-    else if(status == ChargerStatus_t::CHARGING
-            || status == ChargerStatus_t::SUSPENDED_EVSE
-            || status == ChargerStatus_t::SUSPENDED_EV
-    )
-    {
-        if(config.auth.type == AuthType_t::AUTH_TYPE_NFC_CARD)
-        {
-            if(detectedCard_.empty()) return false;
+    if (status == ChargerStatus_t::CHARGING || status == ChargerStatus_t::SUSPENDED_EVSE
+        || status == ChargerStatus_t::SUSPENDED_EV) {
+        return checkAuthorizedActiveChargeState();
+    }
+    return false;
+}
 
-            if(detectedCard_ == session.authCardUid_)
-            {
-                PRINTF_DEBUG("Stopping charging session as requested by %s", detectedCard_.c_str());
-                return true;
-            }
-            else
-            {
-                PRINTF_DEBUG("Card UID mismatch. Cannot stop charging session for card UID: %s", detectedCard_.c_str());
-            }
-        }
-        else if(config.auth.type == AuthType_t::AUTH_TYPE_MATTER_CTRL)
-        {
-            // Matter doesnt have direct control to stop a session
-
-            //unplug the cable make the session stops
+bool ChargerManager::checkAuthorizedPreparingState()
+{
+    switch (config.auth.type) {
+    case AuthType_t::AUTH_TYPE_NFC_CARD:
+        if (detectedCard_.empty()) {
             return false;
         }
-        else if(config.auth.type == AuthType_t::AUTH_TYPE_NFC_W_TIME)
+        if (detectedCard_ == "04482B6A116280") // sample authorized card uid
         {
-            if(detectedCard_.empty()) return false;
-
-            if(detectedCard_ == session.authCardUid_)
-            {
-                PRINTF_DEBUG("Stopping charging session as requested by %s", detectedCard_.c_str());
-                return true;
-            }
-            else
-            {
-                PRINTF_DEBUG("Card UID mismatch. Cannot stop charging session for card UID: %s", detectedCard_.c_str());
-            }
+            session.authCardUid_ = detectedCard_;
+            return true;
         }
+        PRINTF_DEBUG("Charging session cannot start for card UID: %s", detectedCard_.c_str());
+        return false;
+    case AuthType_t::AUTH_TYPE_MATTER_CTRL:
+        PRINTF_DEBUG("Matter Control authorization granted.");
+        return true;
+    case AuthType_t::AUTH_TYPE_NFC_W_TIME:
+        if (onTimeEqual_Second(1)) {
+            config.auth.timeCnt++;
+            PRINTF_DEBUG("TimeBased: %d", config.auth.timeCnt);
+        }
+        if (config.auth.timeCnt >= 5) {
+            PRINTF_DEBUG("Times Up, Auto start charging session!");
+            return true;
+        }
+        if (detectedCard_.empty()) {
+            return false;
+        }
+        if (detectedCard_ == "04482B6A116280") // sample authorized card uid
+        {
+            session.authCardUid_ = detectedCard_;
+            return true;
+        }
+        PRINTF_DEBUG("Charging session cannot start for card UID: %s", detectedCard_.c_str());
+        return false;
+    default:
+        return false;
     }
+}
 
-    return false;
+bool ChargerManager::checkAuthorizedActiveChargeState()
+{
+    switch (config.auth.type) {
+    case AuthType_t::AUTH_TYPE_NFC_CARD:
+    case AuthType_t::AUTH_TYPE_NFC_W_TIME:
+        if (detectedCard_.empty()) {
+            return false;
+        }
+        if (detectedCard_ == session.authCardUid_) {
+            PRINTF_DEBUG("Stopping charging session as requested by %s", detectedCard_.c_str());
+            return true;
+        }
+        PRINTF_DEBUG("Card UID mismatch. Cannot stop charging session for card UID: %s", detectedCard_.c_str());
+        return false;
+    case AuthType_t::AUTH_TYPE_MATTER_CTRL:
+        // Matter doesnt have direct control to stop a session — unplug stops session
+        return false;
+    default:
+        return false;
+    }
 }
 
 void ChargerManager::onSessionStart() 
@@ -490,6 +466,97 @@ void ChargerManager::findNextStatus()
     }
 }
 
+void ChargerManager::runExecPreparingCase()
+{
+    if (state_action_run_) {
+        return;
+    }
+
+    if (!inAuthProcess_) {
+        startAuthRequest();
+    }
+
+    bool canStart = true;
+    if (config.auth.type != AuthType_t::AUTH_TYPE_NONE) {
+        canStart = checkIsAuthorized();
+    }
+    if (!canStart || !MatterManager::GetInstance().IsChargingAllowedByTargets()) {
+        return;
+    }
+
+    state_action_run_ = true;
+    session.isAuthorized_ = true;
+    pHwControl->setChargeCommand(HwChargeCommand_t::START);
+}
+
+void ChargerManager::applyMatterTargetChargeControls()
+{
+    if (status == ChargerStatus_t::CHARGING || status == ChargerStatus_t::SUSPENDED_EV) {
+        if (!MatterManager::GetInstance().IsChargingAllowedByTargets()) {
+            pHwControl->setChargeCommand(HwChargeCommand_t::PAUSE);
+            return;
+        }
+        if (!MatterManager::GetInstance().GetChargingEnabled()) {
+            state_action_run_ = true;
+            session.isActive_ = false;
+            pHwControl->setChargeCommand(HwChargeCommand_t::STOP);
+        }
+        return;
+    }
+
+    if (status != ChargerStatus_t::SUSPENDED_EVSE) {
+        return;
+    }
+    if (MatterManager::GetInstance().IsChargingAllowedByTargets()) {
+        pHwControl->setChargeCommand(HwChargeCommand_t::START);
+    }
+}
+
+void ChargerManager::runExecChargingLikeCase()
+{
+    if (state_action_run_) {
+        return;
+    }
+
+    if (!session.isActive_) {
+        onSessionStart();
+    }
+
+    session.timeElapsed = (esp_timer_get_time() - session.startTime) / 1000000;
+    PRINTF_DEBUG("Time Elapsed: %.2f sec", session.timeElapsed * 1.0);
+
+    if (onTimeEqual_Second(1)) {
+        HwChargingMeter_t meter = pHwControl->getMeter();
+
+        session.chargingData.energyDelivered_mWh = meter.energy_mWh;
+        session.chargingData.current = meter.current_mA;
+        session.chargingData.voltage = meter.voltage_mV;
+
+        MatterManager::GetInstance().UpdateSession(meter.energy_mWh);
+        MatterManager::GetInstance().SendReadings(meter.power_mW, meter.voltage_mV, meter.current_mA);
+        MatterManager::GetInstance().SendCumulativeEnergyReading(meter.energy_mWh, 0);
+
+        showChargingSessionInfo();
+        applyMatterTargetChargeControls();
+    }
+
+    if (!inAuthProcess_) {
+        startAuthRequest();
+    }
+
+    bool canStop = false;
+    if (config.auth.type != AuthType_t::AUTH_TYPE_NONE) {
+        canStop = checkIsAuthorized();
+    }
+    if (!canStop) {
+        return;
+    }
+
+    state_action_run_ = true;
+    session.isActive_ = false;
+    pHwControl->setChargeCommand(HwChargeCommand_t::STOP);
+}
+
 void ChargerManager::execCurrentStatus() 
 {
     switch (status) {
@@ -499,101 +566,12 @@ void ChargerManager::execCurrentStatus()
             }
             break;
         case ChargerStatus_t::PREPARING:
-            {
-                if(state_action_run_) break;
-
-                if(!inAuthProcess_)
-                {
-                    startAuthRequest();
-                }
-
-                //check if the authorization is granted for charger session
-
-                bool canStart = true;
-                if(config.auth.type != AuthType_t::AUTH_TYPE_NONE)
-                {
-                    canStart = checkIsAuthorized();
-                }
-
-                if(canStart)
-                {
-                    if (MatterManager::GetInstance().IsChargingAllowedByTargets())
-                    {
-                        state_action_run_ = true;
-                        session.isAuthorized_ = true;
-                        
-                        pHwControl->setChargeCommand(HwChargeCommand_t::START);
-                    }
-                }
-            }
+            runExecPreparingCase();
             break;
         case ChargerStatus_t::CHARGING:
         case ChargerStatus_t::SUSPENDED_EVSE:
         case ChargerStatus_t::SUSPENDED_EV:
-            {
-                if(state_action_run_) break;
-
-                if(!session.isActive_) onSessionStart();
-
-                // When calculating elapsed:
-                session.timeElapsed = (esp_timer_get_time() - session.startTime) / 1000000;
-
-                PRINTF_DEBUG("Time Elapsed: %.2f sec", session.timeElapsed * 1.0);
-
-                // show every second
-                if(onTimeEqual_Second(1)) {
-                    HwChargingMeter_t meter = pHwControl->getMeter();
-                    
-                    session.chargingData.energyDelivered_mWh = meter.energy_mWh;
-                    session.chargingData.current = meter.current_mA;
-                    session.chargingData.voltage = meter.voltage_mV;
-                    
-                    MatterManager::GetInstance().UpdateSession(meter.energy_mWh);
-                    MatterManager::GetInstance().SendReadings(meter.power_mW, meter.voltage_mV, meter.current_mA);
-                    MatterManager::GetInstance().SendCumulativeEnergyReading(meter.energy_mWh, 0);
-
-                    showChargingSessionInfo();
-                }
-
-                if (onTimeEqual_Second(1)) 
-                {
-                    // check if MatterManager allows charging
-                    if (status == ChargerStatus_t::CHARGING 
-                        || status == ChargerStatus_t::SUSPENDED_EV) {
-                        if (MatterManager::GetInstance().IsChargingAllowedByTargets() == false) {
-                            pHwControl->setChargeCommand(HwChargeCommand_t::PAUSE);
-                        } else if (MatterManager::GetInstance().GetChargingEnabled() == false) {
-                            state_action_run_ = true;
-                            session.isActive_ = false;
-                            pHwControl->setChargeCommand(HwChargeCommand_t::STOP);
-                        }
-                    } else if (status == ChargerStatus_t::SUSPENDED_EVSE) {
-                        if (MatterManager::GetInstance().IsChargingAllowedByTargets()) {
-                            pHwControl->setChargeCommand(HwChargeCommand_t::START);
-                        }
-                    }
-                }
-
-                //start auth request process
-                if(!inAuthProcess_)
-                {
-                    startAuthRequest();
-                }
-
-                //check if the authorization is granted for below action
-                bool canStop = false;
-                if(config.auth.type != AuthType_t::AUTH_TYPE_NONE)
-                {
-                    canStop = checkIsAuthorized();
-                }
-
-                if(canStop)
-                {
-                    state_action_run_ = true;
-                    session.isActive_ = false;
-                    pHwControl->setChargeCommand(HwChargeCommand_t::STOP);
-                }
-            }
+            runExecChargingLikeCase();
             break;
         case ChargerStatus_t::FINISHING:
             {
