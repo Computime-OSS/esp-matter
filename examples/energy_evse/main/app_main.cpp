@@ -34,7 +34,6 @@
 
 extern "C" void app_main()
 {
-    // esp_log_level_set("*", ESP_LOG_NONE);
 	uint32_t free_dram = esp_get_free_heap_size();
 	uint32_t free_iram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL) - free_dram;
 	DEBUG_CHECKPOINT("Free memory: %" PRIu32 " (DRAM/heap), %" PRIu32 " (IRAM)", free_dram, free_iram);
@@ -49,7 +48,9 @@ extern "C" void app_main()
         err = nvs_flash_init();
     }
 
-    PRINTF_DEBUG("Initializing NVS Flash %s", err == ESP_OK ? "Done" : "Failed");
+    /* Read err outside PRINTF_DEBUG so it is observed when verbose logging is compiled out */
+    const bool nvs_flash_ok = (err == ESP_OK);
+    PRINTF_DEBUG("Initializing NVS Flash %s", nvs_flash_ok ? "Done" : "Failed");
 #else
     PRINTF_DEBUG("Initializing NVS Flash maybe in other modules ...");
 #endif
