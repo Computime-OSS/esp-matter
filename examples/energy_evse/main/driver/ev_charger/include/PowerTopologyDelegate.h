@@ -37,7 +37,7 @@ public:
 
     void SetupDelegate(EndpointId id);
     void SetAvailableEndpointIds(EndpointId id, size_t index);
-    void AddCustomAttributes();
+    void AddCustomAttributes() const;
     void AddCustomFeatures(Feature aFeature);
     void LateSetupAfterMatter();
 

@@ -55,12 +55,6 @@ void PowerTopologyDelegate::SetupDelegate(EndpointId id)
     mEndpointId = id;
 
     AddCustomAttributes();
-
-    // AddCustomFeatures(
-    //     BitMask<PowerTopology::Feature, uint32_t>(
-    //         PowerTopology::Feature::kSetTopology
-    //     )
-    // );
 }
 
 void PowerTopologyDelegate::SetAvailableEndpointIds(EndpointId id, size_t index)
@@ -72,7 +66,7 @@ void PowerTopologyDelegate::SetAvailableEndpointIds(EndpointId id, size_t index)
     PRINTF_DEBUG("Set Available Endpoints Idx:%d=%d", index, id);
 }
 
-void PowerTopologyDelegate::AddCustomAttributes()
+void PowerTopologyDelegate::AddCustomAttributes() const
 {
     /*
      * Empty: PowerTopology custom attributes are provisioned when the cluster is created;
@@ -103,9 +97,14 @@ void PowerTopologyDelegate::LateSetupAfterMatter()
     esp_matter_attr_val_t val =
         esp_matter_array((uint8_t *) mAvailableEps, std::size(mAvailableEps), std::size(mAvailableEps));
 
-    esp_err_t err = esp_matter::attribute::report(mEndpointId, PowerTopology::Id, PowerTopology::Attributes::AvailableEndpoints::Id, &val);
-
-    PRINTF_DEBUG("Power Source ActiveEndpoints: (%s)", err==ESP_OK?"OK":"Failed");
+    const esp_err_t err =
+        esp_matter::attribute::report(mEndpointId, PowerTopology::Id, PowerTopology::Attributes::AvailableEndpoints::Id, &val);
+    if (err != ESP_OK)
+    {
+        PRINTF_DEBUG("Power Source ActiveEndpoints report failed: %s", esp_err_to_name(err));
+        return;
+    }
+    PRINTF_DEBUG("Power Source ActiveEndpoints: (OK)");
 }
 
 CHIP_ERROR PowerTopologyInstance::InitializeCluster()
