@@ -435,10 +435,6 @@ CHIP_ERROR EnergyEvseDelegate::SetChargingEnabledUntil(const DataModel::Nullable
                           static_cast<unsigned long int>(mChargingEnabledUntil.Value()));
         }
 
-        // Write new value to persistent storage.
-        // ConcreteAttributePath path = ConcreteAttributePath(mEndpointId, EnergyEvse::Id, ChargingEnabledUntil::Id);
-        // GetSafeAttributePersistenceProvider()->WriteScalarValue(path, mChargingEnabledUntil);
-
         MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, ChargingEnabledUntil::Id);
     }
 
@@ -465,9 +461,6 @@ CHIP_ERROR EnergyEvseDelegate::SetDischargingEnabledUntil(const DataModel::Nulla
             PRINTF_DEBUG("DischargingEnabledUntil updated to %lu",
                           static_cast<unsigned long int>(mDischargingEnabledUntil.Value()));
         }
-        // Write new value to persistent storage.
-        // ConcreteAttributePath path = ConcreteAttributePath(mEndpointId, EnergyEvse::Id, DischargingEnabledUntil::Id);
-        // GetSafeAttributePersistenceProvider()->WriteScalarValue(path, mDischargingEnabledUntil);
 
         MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, DischargingEnabledUntil::Id);
     }
@@ -562,10 +555,6 @@ CHIP_ERROR EnergyEvseDelegate::SetUserMaximumChargeCurrent(int64_t newValue)
 
         ComputeMaxChargeCurrentLimit();
 
-        // Write new value to persistent storage.
-        // ConcreteAttributePath path = ConcreteAttributePath(mEndpointId, EnergyEvse::Id, UserMaximumChargeCurrent::Id);
-        // GetSafeAttributePersistenceProvider()->WriteScalarValue(path, mUserMaximumChargeCurrent);
-
         MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, UserMaximumChargeCurrent::Id);
     }
 
@@ -588,10 +577,6 @@ CHIP_ERROR EnergyEvseDelegate::SetRandomizationDelayWindow(uint32_t newValue)
     {
         PRINTF_DEBUG("RandomizationDelayWindow updated to %lu",
                       static_cast<unsigned long int>(mRandomizationDelayWindow));
-
-        // Write new value to persistent storage.
-        // ConcreteAttributePath path = ConcreteAttributePath(mEndpointId, EnergyEvse::Id, RandomizationDelayWindow::Id);
-        // GetSafeAttributePersistenceProvider()->WriteScalarValue(path, mRandomizationDelayWindow);
 
         MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, RandomizationDelayWindow::Id);
     }
@@ -726,9 +711,6 @@ CHIP_ERROR EnergyEvseDelegate::SetApproximateEVEfficiency(DataModel::Nullable<ui
         {
             PRINTF_DEBUG("ApproximateEVEfficiency updated to %d", mApproximateEVEfficiency.Value());
         }
-        // // Write new value to persistent storage.
-        // ConcreteAttributePath path = ConcreteAttributePath(mEndpointId, EnergyEvse::Id, ApproximateEVEfficiency::Id);
-        // GetSafeAttributePersistenceProvider()->WriteScalarValue(path, mApproximateEVEfficiency);
 
         MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, ApproximateEVEfficiency::Id);
     }
@@ -782,7 +764,6 @@ void EvseSession::StartSession(int64_t currentEnergy)
     mStartTime = chipEpoch;
 
     mSessionEnergyChargedAtStart    = currentEnergy;
-    // mSessionEnergyDischargedAtStart = dischargingMeterValue;
 
     PRINTF_DEBUG("starting session at time %u, charging meter %lld", mStartTime, static_cast<long long>(mSessionEnergyChargedAtStart));
 
@@ -805,34 +786,21 @@ void EvseSession::StartSession(int64_t currentEnergy)
     MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, SessionDuration::Id);
     MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, SessionEnergyCharged::Id);
     MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, SessionEnergyDischarged::Id);
-
-    // Write values to persistent storage.
-    // ConcreteAttributePath path = ConcreteAttributePath(mEndpointId, EnergyEvse::Id, SessionID::Id);
-    // GetSafeAttributePersistenceProvider()->WriteScalarValue(path, mSessionID);
-
-    // TODO persist mStartTime
-    // TODO persist mSessionEnergyChargedAtStart
-    // TODO persist mSessionEnergyDischargedAtStart
 }
 
 void EvseSession::StopSession(int64_t currentEnergy)
 {
     RecalculateSessionDuration();
     UpdateEnergyCharged(currentEnergy);
-    // UpdateEnergyDischarged(dischargingMeterValue);
 }
 
 /*---------------------- EvseSession functions --------------------------*/
 void EvseSession::RecalculateSessionDuration()
 {
     /* Get Timestamp */
-#if 0
-    // uint32_t chipEpoch = esp_timer_get_time() / 1'000'000; // Convert from us to s
-    // CHIP_ERROR err     = CHIP_NO_ERROR;
-#else
     uint32_t chipEpoch = 0;
     CHIP_ERROR err     = DeviceEnergyManagement::GetEpochTS(chipEpoch);
-#endif
+
     if (err != CHIP_NO_ERROR)
     {
         /* Note that the error will be also be logged inside GetErrorTS() -
@@ -882,11 +850,6 @@ void EnergyEvseDelegate::ApplicationCallbackHandler(const EVSECbInfo * cb, intpt
         }
         case EVSECallbackType::EnergyMeterReadingRequested: {
             PRINTF_DEBUG("EVSE callback - EnergyMeterReadingRequested");
-            if (cb->EnergyMeterReadingRequest.meterType == ChargingDischargingType::kCharging) {
-                // *(cb->EnergyMeterReadingRequest.energyMeterValuePtr) = pClass->mLastChargingEnergyMeter;
-            } else {
-                // *(cb->EnergyMeterReadingRequest.energyMeterValuePtr) = pClass->mLastDischargingEnergyMeter;
-            }
             break;
         }
 
@@ -1160,13 +1123,11 @@ Status EnergyEvseDelegate::SendEnergyTransferStartedEvent()
         if (mState == StateEnum::kPluggedInCharging)
         {
             /* Sample the energy meter for charging */
-            // GetEVSEEnergyMeterValue(ChargingDischargingType::kCharging, mMeterValueAtEnergyTransferStart);
             event.maximumCurrent = mMaximumChargeCurrent;
         }
         else if (mState == StateEnum::kPluggedInDischarging)
         {
             /* Sample the energy meter for discharging */
-            // GetEVSEEnergyMeterValue(ChargingDischargingType::kDischarging, mMeterValueAtEnergyTransferStart);
 
             /* discharging should have a negative current  */
             event.maximumCurrent = -mMaximumDischargeCurrent;
@@ -1196,17 +1157,13 @@ Status EnergyEvseDelegate::SendEnergyTransferStoppedEvent(EnergyTransferStoppedR
         event.sessionID       = mSession.mSessionID.Value();
         event.state           = mState;
         event.reason          = reason;
-        // int64_t meterValueNow = 0;
 
         if (mState == StateEnum::kPluggedInCharging)
         {
-            // GetEVSEEnergyMeterValue(ChargingDischargingType::kCharging, meterValueNow);
             event.energyTransferred = mSession.mSessionEnergyCharged.Value();
         }
         else if (mState == StateEnum::kPluggedInDischarging)
         {
-            // GetEVSEEnergyMeterValue(ChargingDischargingType::kDischarging, meterValueNow);
-
             /* discharging should have a negative value */
             event.energyTransferred = mSession.mSessionEnergyDischarged.Value();
         }
@@ -1237,8 +1194,6 @@ Status EnergyEvseDelegate::ComputeMaxChargeCurrentLimit()
 
     oldValue                    = mActualChargingCurrentLimit;
     mActualChargingCurrentLimit = mMaxHardwareCurrentLimit;
-    // mActualChargingCurrentLimit = min(mActualChargingCurrentLimit, mCircuitCapacity);
-    // mActualChargingCurrentLimit = min(mActualChargingCurrentLimit, mCableAssemblyCurrentLimit);
     mActualChargingCurrentLimit = min(mActualChargingCurrentLimit, mMaximumChargingCurrentLimitFromCommand);
     mActualChargingCurrentLimit = min(mActualChargingCurrentLimit, mUserMaximumChargeCurrent);
 
@@ -1576,7 +1531,6 @@ Status EnergyEvseDelegate::HandleDisabledEvent()
     case StateEnum::kPluggedInCharging:
     case StateEnum::kPluggedInDischarging:
         SendEnergyTransferStoppedEvent(EnergyTransferStoppedReasonEnum::kEVSEStopped);
-        // SetState(mHwState);
         break;
     default:
         break;
