@@ -85,6 +85,12 @@ public:
     ChargingTargetsMemMgr();
     ~ChargingTargetsMemMgr();
 
+    ChargingTargetsMemMgr(const ChargingTargetsMemMgr &)             = delete;
+    ChargingTargetsMemMgr & operator=(const ChargingTargetsMemMgr &) = delete;
+
+    ChargingTargetsMemMgr(ChargingTargetsMemMgr && other) noexcept;
+    ChargingTargetsMemMgr & operator=(ChargingTargetsMemMgr && other) noexcept;
+
     /**
      * @brief This method prepares a new day schedule. Subsequent calls to GetChargingTargets
      *        and the AllocAndCopy methods below will reference this day schedule.

@@ -16,6 +16,8 @@
  *    limitations under the License.
  */
 
+#include <cstring>
+
 #include <app-common/zap-generated/cluster-objects.h>
 
 #include "ChargingTargetsMemMgr.h"
@@ -41,6 +43,44 @@ ChargingTargetsMemMgr::~ChargingTargetsMemMgr()
             chip::Platform::Delete(mpListOfDays[idx]);
         }
     }
+}
+
+ChargingTargetsMemMgr::ChargingTargetsMemMgr(ChargingTargetsMemMgr && other) noexcept
+    : mChargingTargetSchedulesIdx(other.mChargingTargetSchedulesIdx), mNumDailyChargingTargets(other.mNumDailyChargingTargets)
+{
+    memcpy(mpListOfDays, other.mpListOfDays, sizeof(mpListOfDays));
+    memcpy(mDailyChargingTargets, other.mDailyChargingTargets, sizeof(mDailyChargingTargets));
+
+    memset(other.mpListOfDays, 0, sizeof(other.mpListOfDays));
+    other.mChargingTargetSchedulesIdx = 0;
+    other.mNumDailyChargingTargets    = 0;
+}
+
+ChargingTargetsMemMgr & ChargingTargetsMemMgr::operator=(ChargingTargetsMemMgr && other) noexcept
+{
+    if (this != &other)
+    {
+        for (uint16_t idx = 0; idx < kEvseTargetsMaxNumberOfDays; idx++)
+        {
+            if (mpListOfDays[idx] != nullptr)
+            {
+                chip::Platform::Delete(mpListOfDays[idx]);
+            }
+        }
+
+        memset(mpListOfDays, 0, sizeof(mpListOfDays));
+
+        memcpy(mpListOfDays, other.mpListOfDays, sizeof(mpListOfDays));
+        memcpy(mDailyChargingTargets, other.mDailyChargingTargets, sizeof(mDailyChargingTargets));
+
+        mChargingTargetSchedulesIdx = other.mChargingTargetSchedulesIdx;
+        mNumDailyChargingTargets    = other.mNumDailyChargingTargets;
+
+        memset(other.mpListOfDays, 0, sizeof(other.mpListOfDays));
+        other.mChargingTargetSchedulesIdx = 0;
+        other.mNumDailyChargingTargets    = 0;
+    }
+    return *this;
 }
 
 void ChargingTargetsMemMgr::PrepareDaySchedule(uint16_t chargingTargetSchedulesIdx)
