@@ -77,10 +77,10 @@ public:
     CHIP_ERROR SetFaultState(FaultStateEnum newValue);
 
     DataModel::Nullable<uint32_t> GetChargingEnabledUntil()    override;
-    CHIP_ERROR SetChargingEnabledUntil(DataModel::Nullable<uint32_t> newValue);
+    CHIP_ERROR SetChargingEnabledUntil(const DataModel::Nullable<uint32_t> & newValue);
 
     DataModel::Nullable<uint32_t> GetDischargingEnabledUntil() override;
-    CHIP_ERROR SetDischargingEnabledUntil(DataModel::Nullable<uint32_t> newValue);
+    CHIP_ERROR SetDischargingEnabledUntil(const DataModel::Nullable<uint32_t> & newValue);
 
     int64_t GetCircuitCapacity()                               override;
     int64_t GetMinimumChargeCurrent()                          override;
@@ -99,16 +99,16 @@ public:
     CHIP_ERROR SetRandomizationDelayWindow(uint32_t newValue)  override;
     /* PREF attributes */
     DataModel::Nullable<uint32_t> GetNextChargeStartTime() override;
-    CHIP_ERROR SetNextChargeStartTime(DataModel::Nullable<uint32_t> newNextChargeStartTimeUtc);
+    CHIP_ERROR SetNextChargeStartTime(const DataModel::Nullable<uint32_t> & newNextChargeStartTimeUtc);
 
     DataModel::Nullable<uint32_t> GetNextChargeTargetTime() override;
-    CHIP_ERROR SetNextChargeTargetTime(DataModel::Nullable<uint32_t> newNextChargeTargetTimeUtc);
+    CHIP_ERROR SetNextChargeTargetTime(const DataModel::Nullable<uint32_t> & newNextChargeTargetTimeUtc);
 
     DataModel::Nullable<int64_t> GetNextChargeRequiredEnergy() override;
-    CHIP_ERROR SetNextChargeRequiredEnergy(DataModel::Nullable<int64_t> newNextChargeRequiredEnergyMilliWattH);
+    CHIP_ERROR SetNextChargeRequiredEnergy(const DataModel::Nullable<int64_t> & newNextChargeRequiredEnergyMilliWattH);
 
     DataModel::Nullable<Percent> GetNextChargeTargetSoC() override;
-    CHIP_ERROR SetNextChargeTargetSoC(DataModel::Nullable<Percent> newValue);
+    CHIP_ERROR SetNextChargeTargetSoC(const DataModel::Nullable<Percent> & newValue);
 
     DataModel::Nullable<uint16_t> GetApproximateEVEfficiency() override;
     CHIP_ERROR SetApproximateEVEfficiency(DataModel::Nullable<uint16_t> newValue) override;

@@ -1,4 +1,5 @@
 #include <app/EventLogging.h>
+#include <string>
 
 #include "helpers.h"
 
@@ -241,10 +242,10 @@ Status EnergyEvseDelegate::EnableDischarging(const DataModel::Nullable<uint32_t>
     }
 }
 
-static void FakeDiagnosticProcessEnd(System::Layer * systemLayer, void * appState)
+static void FakeDiagnosticProcessEnd([[maybe_unused]]System::Layer * systemLayer, void * appState)
 {
     // chip::System::TimerCompleteCallback passes opaque context; registered with `this`.
-    EnergyEvseDelegate * dg = reinterpret_cast<EnergyEvseDelegate *>(appState);
+    auto dg = static_cast<EnergyEvseDelegate *>(appState);
 
     dg->SetSupplyState(SupplyStateEnum::kDisabled);
 }
@@ -417,7 +418,7 @@ DataModel::Nullable<uint32_t> EnergyEvseDelegate::GetChargingEnabledUntil()
 {
     return mChargingEnabledUntil;
 }
-CHIP_ERROR EnergyEvseDelegate::SetChargingEnabledUntil(DataModel::Nullable<uint32_t> newValue)
+CHIP_ERROR EnergyEvseDelegate::SetChargingEnabledUntil(const DataModel::Nullable<uint32_t> & newValue)
 {
     DataModel::Nullable<uint32_t> oldValue = mChargingEnabledUntil;
 
@@ -448,7 +449,7 @@ DataModel::Nullable<uint32_t> EnergyEvseDelegate::GetDischargingEnabledUntil()
 {
     return mDischargingEnabledUntil;
 }
-CHIP_ERROR EnergyEvseDelegate::SetDischargingEnabledUntil(DataModel::Nullable<uint32_t> newValue)
+CHIP_ERROR EnergyEvseDelegate::SetDischargingEnabledUntil(const DataModel::Nullable<uint32_t> & newValue)
 {
     DataModel::Nullable<uint32_t> oldValue = mDischargingEnabledUntil;
 
@@ -602,7 +603,7 @@ DataModel::Nullable<uint32_t> EnergyEvseDelegate::GetNextChargeStartTime()
 {
     return mNextChargeStartTime;
 }
-CHIP_ERROR EnergyEvseDelegate::SetNextChargeStartTime(DataModel::Nullable<uint32_t> newNextChargeStartTimeUtc)
+CHIP_ERROR EnergyEvseDelegate::SetNextChargeStartTime(const DataModel::Nullable<uint32_t> & newNextChargeStartTimeUtc)
 {
     if (newNextChargeStartTimeUtc == mNextChargeStartTime)
     {
@@ -616,9 +617,9 @@ CHIP_ERROR EnergyEvseDelegate::SetNextChargeStartTime(DataModel::Nullable<uint32
     }
     else
     {
-        char logs[20];
-        GetReadableTime(mNextChargeStartTime.Value(), logs, sizeof(logs));
-        PRINTF_DEBUG("NextChargeStartTime updated to %s", logs);
+        std::string logs(20, '\0');
+        GetReadableTime(mNextChargeStartTime.Value(), logs.data(), logs.size());
+        PRINTF_DEBUG("NextChargeStartTime updated to %s", logs.c_str());
     }
 
     MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, NextChargeStartTime::Id);
@@ -630,7 +631,7 @@ DataModel::Nullable<uint32_t> EnergyEvseDelegate::GetNextChargeTargetTime()
 {
     return mNextChargeTargetTime;
 }
-CHIP_ERROR EnergyEvseDelegate::SetNextChargeTargetTime(DataModel::Nullable<uint32_t> newNextChargeTargetTimeUtc)
+CHIP_ERROR EnergyEvseDelegate::SetNextChargeTargetTime(const DataModel::Nullable<uint32_t> & newNextChargeTargetTimeUtc)
 {
     if (newNextChargeTargetTimeUtc == mNextChargeTargetTime)
     {
@@ -644,9 +645,9 @@ CHIP_ERROR EnergyEvseDelegate::SetNextChargeTargetTime(DataModel::Nullable<uint3
     }
     else
     {
-        char logs[20];
-        GetReadableTime(mNextChargeTargetTime.Value(), logs, sizeof(logs));
-        PRINTF_DEBUG("NextChargeTargetTime updated to %s", logs);
+        std::string logs(20, '\0');
+        GetReadableTime(mNextChargeTargetTime.Value(), logs.data(), sizeof(logs));
+        PRINTF_DEBUG("NextChargeTargetTime updated to %s", logs.c_str());
     }
 
     MatterManager::ReportAttributeChangeToMatter(mEndpointId, EnergyEvse::Id, NextChargeTargetTime::Id);
@@ -658,7 +659,7 @@ DataModel::Nullable<int64_t> EnergyEvseDelegate::GetNextChargeRequiredEnergy()
 {
     return mNextChargeRequiredEnergy;
 }
-CHIP_ERROR EnergyEvseDelegate::SetNextChargeRequiredEnergy(DataModel::Nullable<int64_t> newNextChargeRequiredEnergyMilliWattH)
+CHIP_ERROR EnergyEvseDelegate::SetNextChargeRequiredEnergy(const DataModel::Nullable<int64_t> & newNextChargeRequiredEnergyMilliWattH)
 {
     if (mNextChargeRequiredEnergy == newNextChargeRequiredEnergyMilliWattH)
     {
@@ -684,7 +685,7 @@ DataModel::Nullable<Percent> EnergyEvseDelegate::GetNextChargeTargetSoC()
 {
     return mNextChargeTargetSoC;
 }
-CHIP_ERROR EnergyEvseDelegate::SetNextChargeTargetSoC(DataModel::Nullable<Percent> newValue)
+CHIP_ERROR EnergyEvseDelegate::SetNextChargeTargetSoC(const DataModel::Nullable<Percent> & newValue)
 {
     DataModel::Nullable<Percent> oldValue = mNextChargeTargetSoC;
 
@@ -1643,8 +1644,8 @@ void EnergyEvseDelegate::OnEvseEnableTimerExpired()
     ScheduleCheckOnEnabledTimeout();
 }
 
-void EnergyEvseDelegate::EvseCheckTimerExpiry(System::Layer * systemLayer, void * appState)
+void EnergyEvseDelegate::EvseCheckTimerExpiry([[maybe_unused]]System::Layer * systemLayer, void * appState)
 {
     // TimerCompleteCallback passes appState registered with StartTimer (we pass `this`).
-    reinterpret_cast<EnergyEvseDelegate *>(appState)->OnEvseEnableTimerExpired();
+    static_cast<EnergyEvseDelegate *>(appState)->OnEvseEnableTimerExpired();
 }
