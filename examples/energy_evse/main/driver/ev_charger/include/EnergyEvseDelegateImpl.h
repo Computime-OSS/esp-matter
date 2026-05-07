@@ -210,9 +210,9 @@ public:
     /* Callback related */
     EVSECallbackWrapper mCallbacks = { .handler = nullptr, .arg = 0 }; /* Wrapper to allow callbacks to be registered */
     Status HwRegisterEvseCallbackHandler(EVSECallbackFunc handler, intptr_t arg);
-    Status NotifyApplicationCurrentLimitChange(int64_t maximumChargeCurrent);
-    Status NotifyApplicationStateChange();
-    Status NotifyApplicationChargingPreferencesChange();
+    Status NotifyApplicationCurrentLimitChange(int64_t maximumChargeCurrent) const;
+    Status NotifyApplicationStateChange() const;
+    Status NotifyApplicationChargingPreferencesChange() const;
 
     // -----------------------------------------------------------------
     // Internal API to allow an EVSE to change its internal state etc

@@ -831,7 +831,7 @@ void EvseSession::UpdateEnergyDischarged(int64_t currentEnergy)
 
 void EnergyEvseDelegate::ApplicationCallbackHandler(const EVSECbInfo * cb, intptr_t arg)
 {
-    auto pClass = static_cast<EnergyEvseDelegate *>(arg);
+    auto pClass = reinterpret_cast<EnergyEvseDelegate *>(arg);
 
     switch (cb->type) {
         case EVSECallbackType::StateChanged: {
@@ -877,7 +877,7 @@ Status EnergyEvseDelegate::HwRegisterEvseCallbackHandler(EVSECallbackFunc handle
     return Status::Success;
 }
 
-Status EnergyEvseDelegate::NotifyApplicationCurrentLimitChange(int64_t maximumChargeCurrent)
+Status EnergyEvseDelegate::NotifyApplicationCurrentLimitChange(int64_t maximumChargeCurrent) const
 {
     EVSECbInfo cbInfo;
 
@@ -892,7 +892,7 @@ Status EnergyEvseDelegate::NotifyApplicationCurrentLimitChange(int64_t maximumCh
     return Status::Success;
 }
 
-Status EnergyEvseDelegate::NotifyApplicationStateChange()
+Status EnergyEvseDelegate::NotifyApplicationStateChange() const
 {
     EVSECbInfo cbInfo;
 
@@ -908,7 +908,7 @@ Status EnergyEvseDelegate::NotifyApplicationStateChange()
     return Status::Success;
 }
 
-Status EnergyEvseDelegate::NotifyApplicationChargingPreferencesChange()
+Status EnergyEvseDelegate::NotifyApplicationChargingPreferencesChange() const
 {
     EVSECbInfo cbInfo;
 
