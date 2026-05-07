@@ -1308,10 +1308,10 @@ CHIP_ERROR EnergyEvseDelegate::FillNextChargeScheduleTimes(uint8_t searchDay, ui
 
     if (!targetSoC.IsNull())
     {
-        char targetTimeBuf[20];
-        GetReadableTime(tempTargetTime_epoch_s, targetTimeBuf, sizeof(targetTimeBuf));
+        std::string targetTimeBuf(20, '\0');
+        GetReadableTime(tempTargetTime_epoch_s, targetTimeBuf.data(), targetTimeBuf.size());
 
-        PRINTF_DEBUG("Schedule using SoC: Target=%u%%, TargetTime=[%s]", targetSoC.Value(), targetTimeBuf);
+        PRINTF_DEBUG("Schedule using SoC: Target=%u%%, TargetTime=[%s]", targetSoC.Value(), targetTimeBuf.c_str());
 
         if (targetSoC.Value() != 100)
         {
@@ -1375,11 +1375,11 @@ CHIP_ERROR EnergyEvseDelegate::ComputeChargingSchedule()
     ReturnErrorOnFailure(chip::app::Clusters::DeviceEnergyManagement::GetEpochTS(now_epoch_s));
 
     // LOG: Entry state with human-readable conversions
-    char humanTimeBuf[20];
-    GetReadableTime(now_epoch_s, humanTimeBuf, sizeof(humanTimeBuf));
+    std::string humanTimeBuf(20, '\0');
+    GetReadableTime(now_epoch_s, humanTimeBuf.data(), humanTimeBuf.size());
 
     PRINTF_DEBUG("--- ComputeChargingSchedule Start ---");
-    PRINTF_DEBUG("Current System Time: [%s]", humanTimeBuf);
+    PRINTF_DEBUG("Current System Time: [%s]", humanTimeBuf.c_str());
     PRINTF_DEBUG("Current Day: %s (0x%02x)", GetDayOfWeekStr(dayOfWeekMap), dayOfWeekMap.Raw());
     PRINTF_DEBUG("Minutes Past Midnight: %u", minutesPastMidnightNow_m);
 
@@ -1427,13 +1427,13 @@ CHIP_ERROR EnergyEvseDelegate::ComputeChargingSchedule()
     SetNextChargeTargetSoC(targetSoC);
 
     // LOG: Final Summary
-    char startBuf[20];
-    char targetBuf[20];
+    std::string startBuf(20, '\0');
+    std::string targetBuf(20, '\0');
 
-    GetReadableTime(startTime_epoch_s.ValueOr(0), startBuf, sizeof(startBuf));
-    GetReadableTime(targetTime_epoch_s.ValueOr(0), targetBuf, sizeof(targetBuf));
+    GetReadableTime(startTime_epoch_s.ValueOr(0), startBuf.data(), startBuf.size());
+    GetReadableTime(targetTime_epoch_s.ValueOr(0), targetBuf.data(), targetBuf.size());
 
-    PRINTF_DEBUG("Charge Profile Summary: Start=[%s], Target=[%s], SoC=%u%%, Energy=%lldmWh", startBuf, targetBuf,
+    PRINTF_DEBUG("Charge Profile Summary: Start=[%s], Target=[%s], SoC=%u%%, Energy=%lldmWh", startBuf.c_str(), targetBuf.c_str(),
                  targetSoC.ValueOr(0), addedEnergy_mWh.ValueOr(0));
 
     return err;
