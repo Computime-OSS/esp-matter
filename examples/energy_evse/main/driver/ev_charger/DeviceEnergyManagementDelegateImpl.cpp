@@ -49,11 +49,19 @@ OptOutStateEnum MergedOptOutState(OptOutStateEnum oldValue, OptOutStateEnum newV
 }
 } // namespace
 
-DeviceEnergyManagementDelegate::DeviceEnergyManagementDelegate() :
-    mpDEMManufacturerDelegate(nullptr), mEsaType(ESATypeEnum::kEvse), mEsaCanGenerate(false), mEsaState(ESAStateEnum::kOffline),
-    mAbsMinPowerMw(0), mAbsMaxPowerMw(0), mOptOutState(OptOutStateEnum::kNoOptOut), mPowerAdjustmentInProgress(false),
-    mPowerAdjustmentStartTimeUtc(0), mPauseRequestInProgress(false)
-{}
+DeviceEnergyManagementDelegate::DeviceEnergyManagementDelegate()
+{
+    mpDEMManufacturerDelegate   = nullptr;
+    mEsaType                    = ESATypeEnum::kEvse;
+    mEsaCanGenerate             = false;
+    mEsaState                   = ESAStateEnum::kOffline;
+    mAbsMinPowerMw              = 0;
+    mAbsMaxPowerMw              = 0;
+    mOptOutState                = OptOutStateEnum::kNoOptOut;
+    mPowerAdjustmentInProgress  = false;
+    mPowerAdjustmentStartTimeUtc = 0;
+    mPauseRequestInProgress     = false;
+}
 
 void DeviceEnergyManagementDelegate::SetupDelegate(EndpointId id)
 {
