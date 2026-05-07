@@ -11,7 +11,7 @@ namespace Charger {
 
 namespace {
 
-static const char *TAG = "hw_ctrl";
+static const char * const TAG = "hw_ctrl";
 
 constexpr uint32_t kNominalVoltage_mV = 230'000;
 constexpr uint32_t kBaseCurrent_mA    = 32'000;
@@ -27,9 +27,14 @@ uint32_t fakeCurrentBaseOnTarget(uint32_t targetCurrent_mA)
 
 } // namespace
 
-void HardwareControlInterface::meterTimerCallback(void *arg)
+void HardwareControlInterface::meterTimerCallback(void *hardwareControlIfaceOpaque)
 {
-    static_cast<HardwareControlInterface *>(arg)->onMeterTimer();
+    invokeMeterTimerOnInterface(static_cast<HardwareControlInterface *>(hardwareControlIfaceOpaque));
+}
+
+void HardwareControlInterface::invokeMeterTimerOnInterface(HardwareControlInterface *hardwareControlIface)
+{
+    hardwareControlIface->onMeterTimer();
 }
 
 HardwareControlInterface &HardwareControlInterface::Instance()

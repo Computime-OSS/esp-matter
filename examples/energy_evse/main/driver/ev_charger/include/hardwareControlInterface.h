@@ -116,7 +116,8 @@ public:
 private:
     HardwareControlInterface() = default;
 
-    static void meterTimerCallback(void *arg);
+    static void meterTimerCallback(void *hardwareControlIfaceOpaque);
+    static void invokeMeterTimerOnInterface(HardwareControlInterface *hardwareControlIface);
 
     void startMeterTimer();
     void stopMeterTimer();
