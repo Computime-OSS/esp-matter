@@ -6,30 +6,19 @@
 
 #include "ESP32DeviceInstanceInfoProvider.h"
 
+namespace {
+constexpr const char kDeviceVendorName[]             = "Computime Limited";
+constexpr const char kDeviceProductName[]            = "Matter EVSE";
+constexpr const char kDeviceHardwareVersionString[] = "CTLEV02G01R01";
+} // namespace
+
 namespace chip {
 namespace DeviceLayer {
 
-
-#undef CHIP_DEVICE_CONFIG_DEVICE_VENDOR_NAME
-#undef CHIP_DEVICE_CONFIG_DEVICE_PRODUCT_NAME
-#undef CHIP_DEVICE_CONFIG_DEFAULT_DEVICE_HARDWARE_VERSION_STRING
-#undef CHIP_DEVICE_CONFIG_DEVICE_SOFTWARE_VERSION_STRING
-#undef CHIP_CONFIG_SOFTWARE_VERSION_NUMBER
-#undef CHIP_DEVICE_CONFIG_TEST_SERIAL_NUMBER
-#undef CHIP_DEVICE_CONFIG_DEVICE_NAME
-
-#define CHIP_DEVICE_CONFIG_DEVICE_VENDOR_NAME                       "Computime Limited"
-#define CHIP_DEVICE_CONFIG_DEVICE_PRODUCT_NAME                      "Matter EVSE"
-#define CHIP_DEVICE_CONFIG_DEFAULT_DEVICE_HARDWARE_VERSION_STRING   "CTLEV02G01R01"
-#define CHIP_DEVICE_CONFIG_DEVICE_SOFTWARE_VERSION_STRING           "0.1.0.8C"
-#define CHIP_CONFIG_SOFTWARE_VERSION_NUMBER                         2
-#define CHIP_DEVICE_CONFIG_TEST_SERIAL_NUMBER                       "20260123CTLMEV00001"
-#define CHIP_DEVICE_CONFIG_DEVICE_NAME                              "Test EVSE"
-
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetVendorName(char * buf, size_t bufSize)
 {
-    ReturnErrorCodeIf(bufSize < sizeof(CHIP_DEVICE_CONFIG_DEVICE_VENDOR_NAME), CHIP_ERROR_BUFFER_TOO_SMALL);
-    strcpy(buf, CHIP_DEVICE_CONFIG_DEVICE_VENDOR_NAME);
+    ReturnErrorCodeIf(bufSize < sizeof(kDeviceVendorName), CHIP_ERROR_BUFFER_TOO_SMALL);
+    strcpy(buf, kDeviceVendorName);
     return CHIP_NO_ERROR;
 }
 
@@ -41,8 +30,8 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetVendorId(uint16_t & vendorId)
 
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetProductName(char * buf, size_t bufSize)
 {
-    ReturnErrorCodeIf(bufSize < sizeof(CHIP_DEVICE_CONFIG_DEVICE_PRODUCT_NAME), CHIP_ERROR_BUFFER_TOO_SMALL);
-    strcpy(buf, CHIP_DEVICE_CONFIG_DEVICE_PRODUCT_NAME);
+    ReturnErrorCodeIf(bufSize < sizeof(kDeviceProductName), CHIP_ERROR_BUFFER_TOO_SMALL);
+    strcpy(buf, kDeviceProductName);
 
     return CHIP_NO_ERROR;
 }
@@ -148,8 +137,8 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetHardwareVersion(uint16_t & hardwa
 
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetHardwareVersionString(char * buf, size_t bufSize)
 {
-    ReturnErrorCodeIf(bufSize < sizeof(CHIP_DEVICE_CONFIG_DEFAULT_DEVICE_HARDWARE_VERSION_STRING), CHIP_ERROR_BUFFER_TOO_SMALL);
-    strcpy(buf, CHIP_DEVICE_CONFIG_DEFAULT_DEVICE_HARDWARE_VERSION_STRING);
+    ReturnErrorCodeIf(bufSize < sizeof(kDeviceHardwareVersionString), CHIP_ERROR_BUFFER_TOO_SMALL);
+    strcpy(buf, kDeviceHardwareVersionString);
     return CHIP_NO_ERROR;
 }
 
