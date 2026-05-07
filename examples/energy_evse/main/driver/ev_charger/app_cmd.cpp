@@ -78,9 +78,11 @@ static esp_err_t wifi_connect_handler(int argc, char **argv)
     ESP_RETURN_ON_ERROR(esp_wifi_init(&cfg), TAG, "Failed to initialize WiFi");
     ESP_RETURN_ON_ERROR(esp_wifi_stop(), TAG, "Failed to stop WiFi");
     ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA), TAG, "Failed to set WiFi mode");
-    wifi_config_t wifi_cfg = {0};
-    snprintf((char *)wifi_cfg.sta.ssid, sizeof(wifi_cfg.sta.ssid), "%s", argv[2]);
-    snprintf((char *)wifi_cfg.sta.password, sizeof(wifi_cfg.sta.password), "%s", argv[3]);
+    wifi_sta_config_t sta_cfg{};
+    snprintf(reinterpret_cast<char *>(sta_cfg.ssid), sizeof(sta_cfg.ssid), "%s", argv[2]);
+    snprintf(reinterpret_cast<char *>(sta_cfg.password), sizeof(sta_cfg.password), "%s", argv[3]);
+    wifi_config_t wifi_cfg{};
+    wifi_cfg.sta = sta_cfg;
     ESP_RETURN_ON_ERROR(esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg), TAG, "Failed to set WiFi configuration");
     ESP_RETURN_ON_ERROR(esp_wifi_start(), TAG, "Failed to start WiFi");
     ESP_RETURN_ON_ERROR(esp_wifi_connect(), TAG, "Failed to connect WiFi");

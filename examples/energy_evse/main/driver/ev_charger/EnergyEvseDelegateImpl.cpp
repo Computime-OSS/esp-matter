@@ -162,14 +162,13 @@ Status EnergyEvseDelegate::EnableCharging(const DataModel::Nullable<uint32_t> & 
     {
         /* Charging enabled indefinitely */
         PRINTF_DEBUG("Charging enabled indefinitely");
-        SetChargingEnabledUntil(chargingEnabledUntil);
     }
     else
     {
         /* check chargingEnabledUntil is in the future */
         PRINTF_DEBUG("Charging enabled until: %lu", static_cast<long unsigned int>(chargingEnabledUntil.Value()));
-        SetChargingEnabledUntil(chargingEnabledUntil);
     }
+    SetChargingEnabledUntil(chargingEnabledUntil);
 
     /* If it looks ok, store the min & max charging current */
     mMaximumChargingCurrentLimitFromCommand = maximumChargeCurrent;

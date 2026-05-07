@@ -337,20 +337,14 @@ CHIP_ERROR DeviceEnergyManagementDelegate::GeneratePowerAdjustEndEvent(CauseEnum
         return err;
     }
 
-    if (mpDEMManufacturerDelegate != nullptr)
-    {
-        event.energyUse = mpDEMManufacturerDelegate->GetApproxEnergyDuringSession();
-    }
-    else
-    {
-        event.energyUse = 0;
-    }
+    event.energyUse = (mpDEMManufacturerDelegate != nullptr)
+        ? mpDEMManufacturerDelegate->GetApproxEnergyDuringSession()
+        : 0;
 
     err = LogEvent(event, mEndpointId, eventNumber);
     if (CHIP_NO_ERROR != err)
     {
         PRINTF_DEBUG("Unable to generate PowerAdjustEnd event: %" CHIP_ERROR_FORMAT, err.Format());
-        return err;
     }
 
     return err;
