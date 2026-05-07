@@ -27,6 +27,7 @@
 #include <lib/core/TLV.h>
 #include <lib/support/DefaultStorageKeyAllocator.h>
 #include <lib/support/SafeInt.h>
+#include <array>
 
 using namespace chip;
 using namespace chip::app;
@@ -104,7 +105,7 @@ CHIP_ERROR EvseTargetsDelegate::Init(PersistentStorageDelegate * targetStore)
     return CHIP_NO_ERROR;
 }
 
-const DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> & EvseTargetsDelegate::GetTargets()
+const DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> & EvseTargetsDelegate::GetTargets() const
 {
     return mChargingTargetSchedulesList;
 }
@@ -278,7 +279,7 @@ CHIP_ERROR EvseTargetsDelegate::SetTargets(
 
     // updatedChargingTargetSchedules contains a List of ChargingTargetScheduleStruct where the memory of
     // ChargingTargetScheduleStruct is which is allocated here.
-    Structs::ChargingTargetScheduleStruct::Type updatedChargingTargetSchedulesArray[kEvseTargetsMaxNumberOfDays];
+    std::array<Structs::ChargingTargetScheduleStruct::Type, kEvseTargetsMaxNumberOfDays> updatedChargingTargetSchedulesArray;
 
     // Iterate across the list of new schedules. For each schedule, iterate through the existing Target
     // (mChargingTargetSchedulesList) working out how to merge the new schedule.
@@ -312,8 +313,8 @@ CHIP_ERROR EvseTargetsDelegate::SetTargets(
                             currentBitmask);
 
             // Work out if the new schedule dayOfWeekSequence overlaps with any existing schedules
-            uint8_t bitmaskA = static_cast<uint8_t>(currentBitmask & newBitmask);
-            uint8_t bitmaskB = static_cast<uint8_t>(currentBitmask & ~newBitmask);
+            auto bitmaskA = static_cast<uint8_t>(currentBitmask & newBitmask);
+            auto bitmaskB = static_cast<uint8_t>(currentBitmask & ~newBitmask);
 
             BitMask<TargetDayOfWeekBitmap> updatedBitmask;
 
@@ -376,7 +377,7 @@ CHIP_ERROR EvseTargetsDelegate::SetTargets(
 
         // Now create the full Target data structure that we are going to save to persistent storage
         DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> updatedChargingTargetSchedulesList(
-            updatedChargingTargetSchedulesArray, updatedChargingTargetSchedulesIdx);
+            updatedChargingTargetSchedulesArray.data(), updatedChargingTargetSchedulesIdx);
 
         CHIP_ERROR err = SaveTargets(updatedChargingTargetSchedulesList);
         if (err != CHIP_NO_ERROR)
@@ -445,7 +446,7 @@ EvseTargetsDelegate::SaveTargets(DataModel::List<const Structs::ChargingTargetSc
 
     ReturnErrorOnFailure(writer.EndContainer(arrayType));
 
-    uint64_t len = static_cast<uint64_t>(writer.GetLengthWritten());
+    auto len = static_cast<uint64_t>(writer.GetLengthWritten());
     PRINTF_DEBUG("SaveTargets: length written 0x" ChipLogFormatX64, ChipLogValueX64(len));
 
     writer.Finalize(backingBuffer);

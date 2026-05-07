@@ -56,7 +56,7 @@ public:
     /**
      *  @brief   This returns a reference to the existing targets
      */
-    const DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> & GetTargets();
+    const DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> & GetTargets() const;
 
     /**
      * @brief   Copies a ChargingTargetSchedule into our store
