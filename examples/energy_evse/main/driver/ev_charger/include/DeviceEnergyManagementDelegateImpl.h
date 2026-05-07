@@ -274,6 +274,10 @@ private:
     // Method to generate a Paused event
     CHIP_ERROR GenerateResumedEvent(CauseEnum cause);
 
+    bool ShouldCancelPowerAdjustForOptOut(OptOutStateEnum newValue);
+    bool ShouldCancelPauseForOptOut(OptOutStateEnum newValue);
+    CHIP_ERROR NormalizeForecastReasonAfterOptOut();
+
 private:
     // Have a pointer to partner instance object
     DeviceEnergyManagement::Instance * mpDEMInstance;

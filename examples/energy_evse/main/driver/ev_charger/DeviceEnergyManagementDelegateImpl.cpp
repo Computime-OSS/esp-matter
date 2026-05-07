@@ -37,6 +37,18 @@ using CostsList = DataModel::List<const DeviceEnergyManagement::Structs::CostStr
 
 using namespace CT::Charger;
 
+namespace {
+OptOutStateEnum MergedOptOutState(OptOutStateEnum oldValue, OptOutStateEnum newValue)
+{
+    if ((oldValue == OptOutStateEnum::kGridOptOut && newValue == OptOutStateEnum::kLocalOptOut) ||
+        (oldValue == OptOutStateEnum::kLocalOptOut && newValue == OptOutStateEnum::kGridOptOut))
+    {
+        return OptOutStateEnum::kOptOut;
+    }
+    return newValue;
+}
+} // namespace
+
 DeviceEnergyManagementDelegate::DeviceEnergyManagementDelegate() :
     mpDEMManufacturerDelegate(nullptr), mEsaType(ESATypeEnum::kEvse), mEsaCanGenerate(false), mEsaState(ESAStateEnum::kOffline),
     mAbsMinPowerMw(0), mAbsMaxPowerMw(0), mOptOutState(OptOutStateEnum::kNoOptOut), mPowerAdjustmentInProgress(false),
@@ -974,91 +986,102 @@ CHIP_ERROR DeviceEnergyManagementDelegate::SetForecast(const DataModel::Nullable
     return CHIP_NO_ERROR;
 }
 
+bool DeviceEnergyManagementDelegate::ShouldCancelPowerAdjustForOptOut(OptOutStateEnum newValue)
+{
+    if (!mPowerAdjustmentInProgress)
+    {
+        return false;
+    }
+    if (newValue == OptOutStateEnum::kOptOut)
+    {
+        return true;
+    }
+    const auto cause = GetPowerAdjustmentCapability().Value().cause;
+    if (newValue == OptOutStateEnum::kLocalOptOut && cause == PowerAdjustReasonEnum::kLocalOptimizationAdjustment)
+    {
+        return true;
+    }
+    return newValue == OptOutStateEnum::kGridOptOut && cause == PowerAdjustReasonEnum::kGridOptimizationAdjustment;
+}
+
+bool DeviceEnergyManagementDelegate::ShouldCancelPauseForOptOut(OptOutStateEnum newValue)
+{
+    if (!mPauseRequestInProgress)
+    {
+        return false;
+    }
+    if (newValue == OptOutStateEnum::kOptOut)
+    {
+        return true;
+    }
+    const auto reason = mForecast.Value().forecastUpdateReason;
+    return (newValue == OptOutStateEnum::kLocalOptOut && reason == ForecastUpdateReasonEnum::kLocalOptimization) ||
+        (newValue == OptOutStateEnum::kGridOptOut && reason == ForecastUpdateReasonEnum::kGridOptimization);
+}
+
+CHIP_ERROR DeviceEnergyManagementDelegate::NormalizeForecastReasonAfterOptOut()
+{
+    if (mForecast.IsNull())
+    {
+        return CHIP_NO_ERROR;
+    }
+
+    switch (mForecast.Value().forecastUpdateReason)
+    {
+    case ForecastUpdateReasonEnum::kInternalOptimization:
+        // We don't need to redo a forecast since its internal already
+        break;
+    case ForecastUpdateReasonEnum::kLocalOptimization:
+        if (mOptOutState == OptOutStateEnum::kOptOut || mOptOutState == OptOutStateEnum::kLocalOptOut)
+        {
+            mForecast.Value().forecastUpdateReason = ForecastUpdateReasonEnum::kInternalOptimization;
+            MatterManager::ReportAttributeChangeToMatter(mEndpointId, DeviceEnergyManagement::Id, Forecast::Id);
+            // Generate a new forecast with Internal Optimization
+            // TODO
+        }
+        break;
+    case ForecastUpdateReasonEnum::kGridOptimization:
+        if (mOptOutState == OptOutStateEnum::kOptOut || mOptOutState == OptOutStateEnum::kGridOptOut)
+        {
+            mForecast.Value().forecastUpdateReason = ForecastUpdateReasonEnum::kInternalOptimization;
+            MatterManager::ReportAttributeChangeToMatter(mEndpointId, DeviceEnergyManagement::Id, Forecast::Id);
+            // Generate a new forecast with Internal Optimization
+            // TODO
+        }
+        break;
+    default:
+        PRINTF_DEBUG("Bad ForecastUpdateReasonEnum value of %d", to_underlying(mForecast.Value().forecastUpdateReason));
+        return CHIP_ERROR_BAD_REQUEST;
+    }
+    return CHIP_NO_ERROR;
+}
+
 CHIP_ERROR DeviceEnergyManagementDelegate::SetOptOutState(OptOutStateEnum newValue)
 {
-    CHIP_ERROR err = CHIP_NO_ERROR;
-
-    OptOutStateEnum oldValue = mOptOutState;
-
-    // The OptOutState is cumulative
-    if ((oldValue == OptOutStateEnum::kGridOptOut && newValue == OptOutStateEnum::kLocalOptOut) ||
-        (oldValue == OptOutStateEnum::kLocalOptOut && newValue == OptOutStateEnum::kGridOptOut))
-    {
-        mOptOutState = OptOutStateEnum::kOptOut;
-    }
-    else
-    {
-        mOptOutState = newValue;
-    }
+    const OptOutStateEnum oldValue = mOptOutState;
+    mOptOutState                   = MergedOptOutState(oldValue, newValue);
 
     if (oldValue != newValue)
     {
         PRINTF_DEBUG("mOptOutState updated to %d mPowerAdjustmentInProgress %d", to_underlying(mOptOutState),
-                      mPowerAdjustmentInProgress);
+                     mPowerAdjustmentInProgress);
         MatterManager::ReportAttributeChangeToMatter(mEndpointId, DeviceEnergyManagement::Id, OptOutState::Id);
     }
 
-    // Cancel any outstanding PowerAdjustment if necessary
-    if (mPowerAdjustmentInProgress)
+    CHIP_ERROR err = CHIP_NO_ERROR;
+    if (ShouldCancelPowerAdjustForOptOut(newValue))
     {
-        if ((newValue == OptOutStateEnum::kLocalOptOut &&
-             GetPowerAdjustmentCapability().Value().cause == PowerAdjustReasonEnum::kLocalOptimizationAdjustment) ||
-            (newValue == OptOutStateEnum::kGridOptOut &&
-             GetPowerAdjustmentCapability().Value().cause == PowerAdjustReasonEnum::kGridOptimizationAdjustment) ||
-            newValue == OptOutStateEnum::kOptOut)
-        {
-            err = CancelPowerAdjustRequestAndGenerateEvent(DeviceEnergyManagement::CauseEnum::kUserOptOut);
-        }
+        err = CancelPowerAdjustRequestAndGenerateEvent(DeviceEnergyManagement::CauseEnum::kUserOptOut);
+    }
+    if (ShouldCancelPauseForOptOut(newValue))
+    {
+        err = CancelPauseRequestAndGenerateEvent(DeviceEnergyManagement::CauseEnum::kUserOptOut);
     }
 
-    // Cancel any outstanding PauseRequest if necessary
-    if (mPauseRequestInProgress)
+    const CHIP_ERROR forecastErr = NormalizeForecastReasonAfterOptOut();
+    if (forecastErr != CHIP_NO_ERROR)
     {
-        // Cancel any outstanding PauseRequest
-        if ((newValue == OptOutStateEnum::kLocalOptOut &&
-             mForecast.Value().forecastUpdateReason == ForecastUpdateReasonEnum::kLocalOptimization) ||
-            (newValue == OptOutStateEnum::kGridOptOut &&
-             mForecast.Value().forecastUpdateReason == ForecastUpdateReasonEnum::kGridOptimization) ||
-            newValue == OptOutStateEnum::kOptOut)
-        {
-            err = CancelPauseRequestAndGenerateEvent(DeviceEnergyManagement::CauseEnum::kUserOptOut);
-        }
+        return forecastErr;
     }
-
-    if (!mForecast.IsNull())
-    {
-        switch (mForecast.Value().forecastUpdateReason)
-        {
-        case ForecastUpdateReasonEnum::kInternalOptimization:
-            // We don't need to redo a forecast since its internal already
-            break;
-        case ForecastUpdateReasonEnum::kLocalOptimization:
-            if ((mOptOutState == OptOutStateEnum::kOptOut) || (mOptOutState == OptOutStateEnum::kLocalOptOut))
-            {
-                mForecast.Value().forecastUpdateReason = ForecastUpdateReasonEnum::kInternalOptimization;
-
-                MatterManager::ReportAttributeChangeToMatter(mEndpointId, DeviceEnergyManagement::Id, Forecast::Id);
-                // Generate a new forecast with Internal Optimization
-                // TODO
-            }
-            break;
-        case ForecastUpdateReasonEnum::kGridOptimization:
-            if ((mOptOutState == OptOutStateEnum::kOptOut) || (mOptOutState == OptOutStateEnum::kGridOptOut))
-            {
-                mForecast.Value().forecastUpdateReason = ForecastUpdateReasonEnum::kInternalOptimization;
-
-                MatterManager::ReportAttributeChangeToMatter(mEndpointId, DeviceEnergyManagement::Id, Forecast::Id);
-                // Generate a new forecast with Internal Optimization
-                // TODO
-            }
-            break;
-        default:
-            PRINTF_DEBUG("Bad ForecastUpdateReasonEnum value of %d",
-                          to_underlying(mForecast.Value().forecastUpdateReason));
-            return CHIP_ERROR_BAD_REQUEST;
-            break;
-        }
-    }
-
     return err;
 }
