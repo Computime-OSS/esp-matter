@@ -41,8 +41,8 @@ enum class AuthType_t
 
 void GetReadableTime(uint32_t matterEpoch_s, char * outStr, size_t outSize);
 
-#define ENABLE_CT_LOG 0
-#if	ENABLE_CT_LOG
+#define ENABLE_CT_LOG
+#ifdef	ENABLE_CT_LOG
 #define PRINTF_DEBUG(format, ...)		ESP_LOGI("CT", "%s(%d)\n" LOG_COLOR(LOG_COLOR_CYAN) format LOG_RESET_COLOR "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #else
 #define PRINTF_DEBUG(format, ...)
