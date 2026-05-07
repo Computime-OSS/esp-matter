@@ -22,6 +22,8 @@
 
 #include <PowerTopologyDelegate.h>
 
+#include <iterator>
+
 using namespace chip;
 using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::PowerTopology;
@@ -31,7 +33,7 @@ using namespace esp_matter;
 CHIP_ERROR PowerTopologyDelegate::GetAvailableEndpointAtIndex(size_t index, EndpointId & endpointId)
 {
     PRINTF_DEBUG("GetAvailableEndpointAtIndex:%d", index);
-    if (index >= ArraySize(mAvailableEps)) return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
+    if (index >= std::size(mAvailableEps)) return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     
     if(index == 0){
         endpointId = mAvailableEps[index];
@@ -63,7 +65,7 @@ void PowerTopologyDelegate::SetupDelegate(EndpointId id)
 
 void PowerTopologyDelegate::SetAvailableEndpointIds(EndpointId id, size_t index)
 {
-    if (index >= ArraySize(mAvailableEps)) return;
+    if (index >= std::size(mAvailableEps)) return;
 
     mAvailableEps[index] = id;
 
@@ -72,7 +74,10 @@ void PowerTopologyDelegate::SetAvailableEndpointIds(EndpointId id, size_t index)
 
 void PowerTopologyDelegate::AddCustomAttributes()
 {
-
+    /*
+     * Empty: PowerTopology custom attributes are provisioned when the cluster is created;
+     * nothing is added here for this product variant.
+     */
 }
 
 void PowerTopologyDelegate::AddCustomFeatures(Feature aFeature)
@@ -94,7 +99,8 @@ void PowerTopologyDelegate::AddCustomFeatures(Feature aFeature)
 void PowerTopologyDelegate::LateSetupAfterMatter()
 {
     PRINTF_DEBUG();
-    esp_matter_attr_val_t val = esp_matter_array((uint8_t *)mAvailableEps, ArraySize(mAvailableEps), ArraySize(mAvailableEps));
+    esp_matter_attr_val_t val =
+        esp_matter_array((uint8_t *) mAvailableEps, std::size(mAvailableEps), std::size(mAvailableEps));
 
     esp_err_t err = esp_matter::attribute::report(mEndpointId, PowerTopology::Id, PowerTopology::Attributes::AvailableEndpoints::Id, &val);
 
