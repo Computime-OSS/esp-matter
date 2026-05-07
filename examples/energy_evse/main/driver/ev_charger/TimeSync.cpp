@@ -22,9 +22,10 @@
 #include "nvs_flash.h"
 
 #include <esp_sntp.h>
-#include <lib/support/CHIPMemString.h>
 #include <lib/support/logging/CHIPLogging.h>
 #include <lib/support/TimeUtils.h>
+#include <array>
+#include <string>
 
 #include "TimeSync.h"
 
@@ -36,32 +37,27 @@ namespace {
 constexpr uint8_t kMaxNtpServerStringSize = 128;
 
 /** SNTP retains the hostname pointer; lifetime must span the process — static local avoids a mutable TU-scope global. */
-char (& SntpServerNameBuffer())[kMaxNtpServerStringSize + 1]
+std::string & SntpServerNameStorage()
 {
-    static char sBuf[kMaxNtpServerStringSize + 1];
-    return sBuf;
+    static std::string sName;
+    return sName;
 }
 
-CHIP_ERROR GetLocalTimeString(char * buf, size_t buf_len)
+CHIP_ERROR GetLocalTimeString(std::string & localTime)
 {
-    VerifyOrReturnError(buf_len > 0, CHIP_ERROR_INVALID_ARGUMENT);
     struct tm timeinfo;
-    char strftime_buf[64];
+    std::array<char, 64> strftimeBuf = {};
     time_t now;
     time(&now);
     localtime_r(&now, &timeinfo);
-    if (strftime(strftime_buf, sizeof(strftime_buf), "%Y-%m-%dT%H:%M:%S%z", &timeinfo) == 0)
+    if (strftime(strftimeBuf.data(), strftimeBuf.size(), "%Y-%m-%dT%H:%M:%S%z", &timeinfo) == 0)
     {
         PRINTF_DEBUG("Buffer too small");
         return CHIP_ERROR_BUFFER_TOO_SMALL;
     }
-    size_t print_size = snprintf(buf, buf_len, "%s, DST: %s", strftime_buf, timeinfo.tm_isdst ? "Yes" : "No");
-    if (print_size >= (buf_len - 1))
-    {
-        PRINTF_DEBUG("Buffer size %d insufficient for localtime string. Required size: %d", static_cast<int>(buf_len),
-                     static_cast<int>(print_size));
-        return CHIP_ERROR_BUFFER_TOO_SMALL;
-    }
+    localTime.assign(strftimeBuf.data());
+    localTime += ", DST: ";
+    localTime += timeinfo.tm_isdst ? "Yes" : "No";
     return CHIP_NO_ERROR;
 }
 
@@ -74,14 +70,14 @@ bool ValidateTime()
 
 CHIP_ERROR PrintCurrentTime()
 {
-    char local_time[64] = { 0 };
-    ReturnErrorOnFailure(GetLocalTimeString(local_time, sizeof(local_time)));
+    std::string localTime;
+    ReturnErrorOnFailure(GetLocalTimeString(localTime));
     if (!ValidateTime())
     {
         PRINTF_DEBUG("Time not synchronised yet.");
         return CHIP_ERROR_INCORRECT_STATE;
     }
-    PRINTF_DEBUG("The current time is: %s.", local_time);
+    PRINTF_DEBUG("The current time is: %s.", localTime.c_str());
     return CHIP_NO_ERROR;
 }
 
@@ -131,19 +127,23 @@ void Init(const char * aSntpServerName, const uint16_t aSyncSntpIntervalDay)
         PRINTF_DEBUG("Invalid SNTP synchronization time interval.");
         return;
     }
-    chip::Platform::CopyString(SntpServerNameBuffer(), aSntpServerName);
+    auto & sntpServerName = SntpServerNameStorage();
+    sntpServerName        = (aSntpServerName != nullptr) ? aSntpServerName : "";
+    if (sntpServerName.size() > kMaxNtpServerStringSize)
+    {
+        sntpServerName.resize(kMaxNtpServerStringSize);
+    }
     if (esp_sntp_enabled())
     {
         PRINTF_DEBUG("SNTP already initialized.");
     }
-    PRINTF_DEBUG("Initializing SNTP. Using the SNTP server: %s", SntpServerNameBuffer());
+    PRINTF_DEBUG("Initializing SNTP. Using the SNTP server: %s", sntpServerName.c_str());
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    esp_sntp_setservername(0, SntpServerNameBuffer());
+    esp_sntp_setservername(0, sntpServerName.c_str());
 
     esp_sntp_setservername(1, "time.salusconnect.io");
 	esp_sntp_setservername(2, "time1.salusconnect.io");
 
-    // esp_sntp_set_sync_interval(kMilliSecondsInADay * aSyncSntpIntervalDay);
     sntp_set_time_sync_notification_cb(TimeSyncCallback);
     esp_sntp_init();
 }
