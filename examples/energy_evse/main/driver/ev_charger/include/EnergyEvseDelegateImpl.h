@@ -178,10 +178,10 @@ public:
      * on ChargingEnabledUntil / DischargingEnabledUntil expiring.
      */
     Status ScheduleCheckOnEnabledTimeout();
-    bool IsEvsePluggedIn();
+    bool IsEvsePluggedIn() const;
 
     /* Local State machine handling */
-    Status CheckFaultOrDiagnostic();
+    Status CheckFaultOrDiagnostic() const;
     Status HandleChargingEnabledEvent();
     Status HandleDisabledEvent();
     Status HandleFaultRaised();

@@ -1444,7 +1444,7 @@ CHIP_ERROR EnergyEvseDelegate::ComputeChargingSchedule()
     return err;
 }
 
-Status EnergyEvseDelegate::CheckFaultOrDiagnostic()
+Status EnergyEvseDelegate::CheckFaultOrDiagnostic() const
 {
     if (mFaultState != FaultStateEnum::kNoError)
     {
@@ -1508,7 +1508,7 @@ Status EnergyEvseDelegate::HandleChargingEnabledEvent()
     return Status::Success;
 }
 
-bool EnergyEvseDelegate::IsEvsePluggedIn()
+bool EnergyEvseDelegate::IsEvsePluggedIn() const
 {
     return (mState == StateEnum::kPluggedInCharging || mState == StateEnum::kPluggedInDemand ||
             mState == StateEnum::kPluggedInDischarging || mState == StateEnum::kPluggedInNoDemand);
@@ -1546,7 +1546,7 @@ Status EnergyEvseDelegate::HandleDisabledEvent()
 
 Status EnergyEvseDelegate::ScheduleCheckOnEnabledTimeout()
 {
-    uint32_t chipEpoch = esp_timer_get_time() / 1'000'000; // Convert from us to s
+    uint32_t chipEpoch = 0;
     DataModel::Nullable<uint32_t> enabledUntilTime;
 
     if (mSupplyState == SupplyStateEnum::kChargingEnabled)
