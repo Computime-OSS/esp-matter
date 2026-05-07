@@ -200,12 +200,10 @@ public:
     CHIP_ERROR ComputeChargingSchedule();
 
     /**
-     * @brief This checks if the charging or discharging needs to be disabled
-     *
-     * @params pointer to SystemLayer
-     * @params pointer to EnergyEvseDelegate
+     * CHIP SystemLayer timer callback; @p appState is the delegate (`this`) passed to StartTimer.
+     * Signature matches chip::System::TimerCompleteCallback (second parameter is opaque user context).
      */
-    static void EvseCheckTimerExpiry(System::Layer * systemLayer, void * delegate);
+    static void EvseCheckTimerExpiry(System::Layer * systemLayer, void * appState);
 
     static void ApplicationCallbackHandler(const EVSECbInfo * cb, intptr_t arg);
 
@@ -228,6 +226,30 @@ public:
     EvseTargetsDelegate * GetEvseTargetsDelegate() { return &mEvseTargetsDelegate; }
 
 private:
+    /** Advances @p dayOfWeekMap to the next day when the current day has no matching target. */
+    void AdvanceScheduleSearchDay(BitMask<EnergyEvse::TargetDayOfWeekBitmap> & dayOfWeekMap);
+
+    /**
+     * Runs FindNextTarget for the current day; may rotate the day bitmask when nothing is found (up to 2 days).
+     */
+    CHIP_ERROR SearchNextChargeTargetAcrossDays(BitMask<EnergyEvse::TargetDayOfWeekBitmap> & dayOfWeekMap,
+                                                uint16_t minutesPastMidnightNow_m, uint16_t & targetTimeMinutesPastMidnight_m,
+                                                DataModel::Nullable<Percent> & targetSoC,
+                                                DataModel::Nullable<int64_t> & addedEnergy_mWh, uint8_t & searchDay);
+
+    /**
+     * Fills next-charge start/target timestamps after a target was found (SoC path vs added-energy path).
+     */
+    CHIP_ERROR FillNextChargeScheduleTimes(uint8_t searchDay, uint16_t targetTimeMinutesPastMidnight_m,
+                                           uint16_t minutesPastMidnightNow_m, uint32_t now_epoch_s,
+                                           DataModel::Nullable<Percent> & targetSoC,
+                                           DataModel::Nullable<int64_t> & addedEnergy_mWh,
+                                           DataModel::Nullable<uint32_t> & startTime_epoch_s,
+                                           DataModel::Nullable<uint32_t> & targetTime_epoch_s);
+
+    /** Runs after EvseCheckTimerExpiry dispatches the CHIP timer (real work: reschedule enable-timeout). */
+    void OnEvseEnableTimerExpired();
+
     /* private variables for controlling the hardware - these are not attributes */
     int64_t mMaxHardwareCurrentLimit                = 0; /* Hardware current limit in mA */
     int64_t mCableAssemblyCurrentLimit              = 0; /* Cable limit detected when cable is plugged in, in mA */

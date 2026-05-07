@@ -21,6 +21,47 @@ using namespace CT::Charger;
 
 using chip::app::LogEvent;
 
+namespace {
+
+bool TargetSkippedAsPast(uint16_t targetMinutesPastMidnight, uint16_t minutesPastMidnightNow_m, bool allowTargetsInPast)
+{
+    return !allowTargetsInPast && targetMinutesPastMidnight < minutesPastMidnightNow_m;
+}
+
+void TakeEarlierTarget(const EnergyEvse::Structs::ChargingTargetStruct::Type & chargingTarget, uint16_t & minTimeToTarget_m,
+                       bool & bFound, uint16_t & targetTimeMinutesPastMidnight_m,
+                       DataModel::Nullable<Percent> & targetSoC, DataModel::Nullable<int64_t> & addedEnergy_mWh)
+{
+    if (chargingTarget.targetTimeMinutesPastMidnight >= minTimeToTarget_m)
+    {
+        return;
+    }
+
+    minTimeToTarget_m               = chargingTarget.targetTimeMinutesPastMidnight;
+    bFound                          = true;
+    targetTimeMinutesPastMidnight_m = chargingTarget.targetTimeMinutesPastMidnight;
+
+    if (chargingTarget.targetSoC.HasValue())
+    {
+        targetSoC.SetNonNull(chargingTarget.targetSoC.Value());
+    }
+    else
+    {
+        targetSoC.SetNull();
+    }
+
+    if (chargingTarget.addedEnergy.HasValue())
+    {
+        addedEnergy_mWh.SetNonNull(chargingTarget.addedEnergy.Value());
+    }
+    else
+    {
+        addedEnergy_mWh.SetNull();
+    }
+}
+
+} // namespace
+
 EnergyEvseDelegate::EnergyEvseDelegate()
     : Delegate()
 {
@@ -188,9 +229,10 @@ Status EnergyEvseDelegate::EnableDischarging(const DataModel::Nullable<uint32_t>
 #endif
 }
 
-static void FakeDiagnosticProcessEnd(System::Layer * systemLayer, void * delegate)
+static void FakeDiagnosticProcessEnd(System::Layer * systemLayer, void * appState)
 {
-    EnergyEvseDelegate * dg = reinterpret_cast<EnergyEvseDelegate *>(delegate);
+    // chip::System::TimerCompleteCallback passes opaque context; registered with `this`.
+    EnergyEvseDelegate * dg = reinterpret_cast<EnergyEvseDelegate *>(appState);
 
     dg->SetSupplyState(SupplyStateEnum::kDisabled);
 }
@@ -1203,58 +1245,32 @@ Status EnergyEvseDelegate::ComputeMaxChargeCurrentLimit()
 
 CHIP_ERROR EnergyEvseDelegate::FindNextTarget(const BitMask<EnergyEvse::TargetDayOfWeekBitmap> dayOfWeekMap, uint16_t minutesPastMidnightNow_m, uint16_t & targetTimeMinutesPastMidnight_m, DataModel::Nullable<Percent> & targetSoC, DataModel::Nullable<int64_t> & addedEnergy_mWh, bool bAllowTargetsInPast)
 {
-    EnergyEvse::Structs::ChargingTargetScheduleStruct::Type entry;
-
     uint16_t minTimeToTarget_m = 24 * 60; // 24 hours
     bool bFound                = false;
-    
+
     const DataModel::List<const EnergyEvse::Structs::ChargingTargetScheduleStruct::Type> & chargingTargetSchedules =
         mEvseTargetsDelegate.GetTargets();
     for (auto & chargingTargetScheduleEntry : chargingTargetSchedules)
     {
-        if (chargingTargetScheduleEntry.dayOfWeekForSequence.HasAny(dayOfWeekMap))
+        if (!chargingTargetScheduleEntry.dayOfWeekForSequence.HasAny(dayOfWeekMap))
         {
-            // We've found today's schedule - iterate through the targets on this day
-            for (auto & chargingTarget : chargingTargetScheduleEntry.chargingTargets)
+            continue;
+        }
+
+        for (auto & chargingTarget : chargingTargetScheduleEntry.chargingTargets)
+        {
+            if (TargetSkippedAsPast(chargingTarget.targetTimeMinutesPastMidnight, minutesPastMidnightNow_m,
+                                    bAllowTargetsInPast))
             {
-                if ((chargingTarget.targetTimeMinutesPastMidnight < minutesPastMidnightNow_m) && (bAllowTargetsInPast == false))
-                {
-                    // This target is in the past so move to the next if there is one
-                    continue;
-                }
-
-                if (chargingTarget.targetTimeMinutesPastMidnight < minTimeToTarget_m)
-                {
-                    // This is the earliest target found in the day's targets so far
-                    bFound            = true;
-                    minTimeToTarget_m = chargingTarget.targetTimeMinutesPastMidnight;
-
-                    targetTimeMinutesPastMidnight_m = chargingTarget.targetTimeMinutesPastMidnight;
-
-                    if (chargingTarget.targetSoC.HasValue())
-                    {
-                        targetSoC.SetNonNull(chargingTarget.targetSoC.Value());
-                    }
-                    else
-                    {
-                        targetSoC.SetNull();
-                    }
-
-                    if (chargingTarget.addedEnergy.HasValue())
-                    {
-                        addedEnergy_mWh.SetNonNull(chargingTarget.addedEnergy.Value());
-                    }
-                    else
-                    {
-                        addedEnergy_mWh.SetNull();
-                    }
-                }
+                continue;
             }
+
+            TakeEarlierTarget(chargingTarget, minTimeToTarget_m, bFound, targetTimeMinutesPastMidnight_m, targetSoC,
+                              addedEnergy_mWh);
         }
 
         if (bFound)
         {
-            // Skip the rest of the search
             break;
         }
     }
@@ -1262,9 +1278,119 @@ CHIP_ERROR EnergyEvseDelegate::FindNextTarget(const BitMask<EnergyEvse::TargetDa
     return bFound ? CHIP_NO_ERROR : CHIP_ERROR_NOT_FOUND;
 }
 
+void EnergyEvseDelegate::AdvanceScheduleSearchDay(BitMask<EnergyEvse::TargetDayOfWeekBitmap> & dayOfWeekMap)
+{
+    dayOfWeekMap = BitMask<EnergyEvse::TargetDayOfWeekBitmap>((dayOfWeekMap.Raw() << 1) & kAllTargetDaysMask);
+
+    if (!dayOfWeekMap.HasAny())
+    {
+        dayOfWeekMap = BitMask<EnergyEvse::TargetDayOfWeekBitmap>(TargetDayOfWeekBitmap::kSunday);
+    }
+}
+
+CHIP_ERROR EnergyEvseDelegate::SearchNextChargeTargetAcrossDays(BitMask<EnergyEvse::TargetDayOfWeekBitmap> & dayOfWeekMap,
+                                                                uint16_t minutesPastMidnightNow_m,
+                                                                uint16_t & targetTimeMinutesPastMidnight_m,
+                                                                DataModel::Nullable<Percent> & targetSoC,
+                                                                DataModel::Nullable<int64_t> & addedEnergy_mWh,
+                                                                uint8_t & searchDay)
+{
+    CHIP_ERROR err = CHIP_NO_ERROR;
+    searchDay      = 0;
+
+    while (searchDay < 2)
+    {
+        PRINTF_DEBUG("Searching for target on %s (searchDay=%u)", GetDayOfWeekStr(dayOfWeekMap), searchDay);
+
+        err = FindNextTarget(dayOfWeekMap, minutesPastMidnightNow_m, targetTimeMinutesPastMidnight_m, targetSoC,
+                             addedEnergy_mWh, (searchDay != 0));
+
+        if (err == CHIP_ERROR_NOT_FOUND)
+        {
+            PRINTF_DEBUG("No more targets found for %s", GetDayOfWeekStr(dayOfWeekMap));
+            searchDay++;
+            AdvanceScheduleSearchDay(dayOfWeekMap);
+            continue;
+        }
+
+        if (err == CHIP_NO_ERROR)
+        {
+            PRINTF_DEBUG("Found target for %s at %u minutes past midnight", GetDayOfWeekStr(dayOfWeekMap),
+                         targetTimeMinutesPastMidnight_m);
+            break;
+        }
+
+        PRINTF_DEBUG("Error during FindNextTarget: %" CHIP_ERROR_FORMAT, err.Format());
+        break;
+    }
+
+    return err;
+}
+
+CHIP_ERROR EnergyEvseDelegate::FillNextChargeScheduleTimes(uint8_t searchDay, uint16_t targetTimeMinutesPastMidnight_m,
+                                                           uint16_t minutesPastMidnightNow_m, uint32_t now_epoch_s,
+                                                           DataModel::Nullable<Percent> & targetSoC,
+                                                           DataModel::Nullable<int64_t> & addedEnergy_mWh,
+                                                           DataModel::Nullable<uint32_t> & startTime_epoch_s,
+                                                           DataModel::Nullable<uint32_t> & targetTime_epoch_s)
+{
+    uint32_t tempTargetTime_epoch_s =
+        ((now_epoch_s / 60) + targetTimeMinutesPastMidnight_m + (searchDay * 1440) - minutesPastMidnightNow_m) * 60;
+    targetTime_epoch_s.SetNonNull(tempTargetTime_epoch_s);
+
+    if (!targetSoC.IsNull())
+    {
+        char targetTimeBuf[20];
+        GetReadableTime(tempTargetTime_epoch_s, targetTimeBuf, sizeof(targetTimeBuf));
+
+        PRINTF_DEBUG("Schedule using SoC: Target=%u%%, TargetTime=[%s]", targetSoC.Value(), targetTimeBuf);
+
+        if (targetSoC.Value() != 100)
+        {
+            PRINTF_DEBUG("EVSE WARNING: TargetSoC is not 100%% and we don't know the EV SoC!");
+        }
+        startTime_epoch_s.SetNonNull(now_epoch_s);
+        return CHIP_NO_ERROR;
+    }
+
+    if (addedEnergy_mWh.IsNull())
+    {
+        PRINTF_DEBUG("EVSE ERROR: Neither TargetSoC or AddedEnergy has been provided");
+        return CHIP_ERROR_INTERNAL;
+    }
+
+    uint32_t power_W = static_cast<uint32_t>((230 * GetMaximumChargeCurrent()) / 1000);
+    if (power_W == 0)
+    {
+        PRINTF_DEBUG("EVSE Error: MaxCurrent = 0Amp - Can't schedule charging");
+        return CHIP_ERROR_INTERNAL;
+    }
+
+    uint32_t chargingDuration_s = static_cast<uint32_t>(((addedEnergy_mWh.Value() / power_W) * 36) / 10);
+    chargingDuration_s += (15 * 60);
+    uint32_t tempStartTime_epoch_s = tempTargetTime_epoch_s - chargingDuration_s;
+
+    PRINTF_DEBUG("Schedule using Energy: Required=%lldmWh, Power=%uW, Duration=%us", addedEnergy_mWh.Value(), power_W,
+                 chargingDuration_s);
+
+    if (tempStartTime_epoch_s < now_epoch_s)
+    {
+        startTime_epoch_s.SetNonNull(now_epoch_s);
+        PRINTF_DEBUG("Enable EV to start charging");
+    }
+    else
+    {
+        startTime_epoch_s.SetNonNull(tempStartTime_epoch_s);
+        PRINTF_DEBUG("Disable EV to start charging");
+    }
+
+    return CHIP_NO_ERROR;
+}
+
 CHIP_ERROR EnergyEvseDelegate::ComputeChargingSchedule()
 {
-    if(!MatterManager::GetInstance().isConnected) {
+    if (!MatterManager::GetInstance().isConnected)
+    {
         PRINTF_DEBUG("MatterManager::GetInstance() is NOT Connected");
         return CHIP_NO_ERROR;
     }
@@ -1294,110 +1420,37 @@ CHIP_ERROR EnergyEvseDelegate::ComputeChargingSchedule()
     DataModel::Nullable<Percent> targetSoC;
     DataModel::Nullable<int64_t> addedEnergy_mWh;
 
-    uint32_t power_W;
-    uint32_t chargingDuration_s;
-    uint32_t tempTargetTime_epoch_s;
-    uint32_t tempStartTime_epoch_s;
-    uint16_t targetTimeMinutesPastMidnight_m;
+    uint16_t targetTimeMinutesPastMidnight_m = 0;
+    uint8_t searchDay                        = 0;
 
     targetTime_epoch_s.SetNull();
     targetSoC.SetNull();
     addedEnergy_mWh.SetNull();
     startTime_epoch_s.SetNull();
 
-    if (IsEvsePluggedIn() && GetSupplyState() == SupplyStateEnum::kChargingEnabled)
+    if (!IsEvsePluggedIn() || GetSupplyState() != SupplyStateEnum::kChargingEnabled)
     {
-        uint8_t searchDay = 0;
-        while (searchDay < 2) {
-            // LOG: Current Search Status
-            PRINTF_DEBUG("Searching for target on %s (searchDay=%u)", GetDayOfWeekStr(dayOfWeekMap), searchDay);
-
-            err = FindNextTarget(dayOfWeekMap, minutesPastMidnightNow_m, targetTimeMinutesPastMidnight_m, targetSoC,
-                                 addedEnergy_mWh, (searchDay != 0));
-
-            if (err == CHIP_ERROR_NOT_FOUND) {
-                PRINTF_DEBUG("No more targets found for %s", GetDayOfWeekStr(dayOfWeekMap));
-
-                searchDay++;
-                // Shift bitmask to the next day
-                dayOfWeekMap =
-                    BitMask<EnergyEvse::TargetDayOfWeekBitmap>((dayOfWeekMap.Raw() << 1) & kAllTargetDaysMask);
-
-                if (!dayOfWeekMap.HasAny()) {
-                    // Wrap around from Saturday to Sunday
-                    dayOfWeekMap = BitMask<EnergyEvse::TargetDayOfWeekBitmap>(TargetDayOfWeekBitmap::kSunday);
-                }
-            } else if (err == CHIP_NO_ERROR) {
-                // LOG: Success
-                PRINTF_DEBUG("Found target for %s at %u minutes past midnight", GetDayOfWeekStr(dayOfWeekMap),
-                          targetTimeMinutesPastMidnight_m);
-                break;
-            } else {
-                PRINTF_DEBUG("Error during FindNextTarget: %" CHIP_ERROR_FORMAT, err.Format());
-                break;
-            }
-        }
+        PRINTF_DEBUG("ComputeChargingSchedule: Not plugged in or charging disabled");
+    }
+    else
+    {
+        err = SearchNextChargeTargetAcrossDays(dayOfWeekMap, minutesPastMidnightNow_m, targetTimeMinutesPastMidnight_m,
+                                               targetSoC, addedEnergy_mWh, searchDay);
 
         if (err == CHIP_NO_ERROR)
         {
-            tempTargetTime_epoch_s = ((now_epoch_s / 60) + targetTimeMinutesPastMidnight_m + (searchDay * 1440) - minutesPastMidnightNow_m) * 60;
-            targetTime_epoch_s.SetNonNull(tempTargetTime_epoch_s);
-
-            if (!targetSoC.IsNull())
+            CHIP_ERROR const fillErr = FillNextChargeScheduleTimes(
+                searchDay, targetTimeMinutesPastMidnight_m, minutesPastMidnightNow_m, now_epoch_s, targetSoC,
+                addedEnergy_mWh, startTime_epoch_s, targetTime_epoch_s);
+            if (fillErr != CHIP_NO_ERROR)
             {
-                // LOG: SoC Branch
-                char targetTimeBuf[20];
-                GetReadableTime(tempTargetTime_epoch_s, targetTimeBuf, sizeof(targetTimeBuf));
-
-                PRINTF_DEBUG("Schedule using SoC: Target=%u%%, TargetTime=[%s]", targetSoC.Value(), targetTimeBuf);
-
-                if (targetSoC.Value() != 100)
-                {
-                    PRINTF_DEBUG("EVSE WARNING: TargetSoC is not 100%% and we don't know the EV SoC!");
-                }
-                startTime_epoch_s.SetNonNull(now_epoch_s);
-            }
-            else
-            {
-                if (addedEnergy_mWh.IsNull())
-                {
-                    PRINTF_DEBUG("EVSE ERROR: Neither TargetSoC or AddedEnergy has been provided");
-                    return CHIP_ERROR_INTERNAL;
-                }
-                power_W = static_cast<uint32_t>((230 * GetMaximumChargeCurrent()) / 1000); 
-                if (power_W == 0)
-                {
-                    PRINTF_DEBUG("EVSE Error: MaxCurrent = 0Amp - Can't schedule charging");
-                    return CHIP_ERROR_INTERNAL;
-                }
-
-                chargingDuration_s = static_cast<uint32_t>(((addedEnergy_mWh.Value() / power_W) * 36) / 10);
-                chargingDuration_s += (15 * 60);
-                tempStartTime_epoch_s = tempTargetTime_epoch_s - chargingDuration_s;
-
-                // LOG: Energy Branch
-                PRINTF_DEBUG("Schedule using Energy: Required=%lldmWh, Power=%uW, Duration=%us", addedEnergy_mWh.Value(), power_W, chargingDuration_s);
-
-                if (tempStartTime_epoch_s < now_epoch_s)
-                {
-                    startTime_epoch_s.SetNonNull(now_epoch_s);
-                    PRINTF_DEBUG("Enable EV to start charging");
-                }
-                else
-                {
-                    startTime_epoch_s.SetNonNull(tempStartTime_epoch_s);
-                    PRINTF_DEBUG("Disable EV to start charging");
-                }
+                return fillErr;
             }
         }
         else
         {
             PRINTF_DEBUG("ComputeChargingSchedule: No target found or error occurred (err=%s)", ErrorStr(err));
         }
-    }
-    else
-    {
-        PRINTF_DEBUG("ComputeChargingSchedule: Not plugged in or charging disabled");
     }
 
     SetNextChargeStartTime(startTime_epoch_s);
@@ -1413,7 +1466,7 @@ CHIP_ERROR EnergyEvseDelegate::ComputeChargingSchedule()
     GetReadableTime(targetTime_epoch_s.ValueOr(0), targetBuf, sizeof(targetBuf));
 
     PRINTF_DEBUG("Charge Profile Summary: Start=[%s], Target=[%s], SoC=%u%%, Energy=%lldmWh", startBuf, targetBuf,
-              targetSoC.ValueOr(0), addedEnergy_mWh.ValueOr(0));
+                 targetSoC.ValueOr(0), addedEnergy_mWh.ValueOr(0));
 
     return err;
 }
@@ -1570,9 +1623,13 @@ Status EnergyEvseDelegate::ScheduleCheckOnEnabledTimeout()
     return Status::Success;
 }
 
-void EnergyEvseDelegate::EvseCheckTimerExpiry(System::Layer * systemLayer, void * delegate)
+void EnergyEvseDelegate::OnEvseEnableTimerExpired()
 {
-    EnergyEvseDelegate * dg = reinterpret_cast<EnergyEvseDelegate *>(delegate);
+    ScheduleCheckOnEnabledTimeout();
+}
 
-    dg->ScheduleCheckOnEnabledTimeout();
+void EnergyEvseDelegate::EvseCheckTimerExpiry(System::Layer * systemLayer, void * appState)
+{
+    // TimerCompleteCallback passes appState registered with StartTimer (we pass `this`).
+    reinterpret_cast<EnergyEvseDelegate *>(appState)->OnEvseEnableTimerExpired();
 }
