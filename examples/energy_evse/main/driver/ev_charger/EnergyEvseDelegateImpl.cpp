@@ -831,7 +831,7 @@ void EvseSession::UpdateEnergyDischarged(int64_t currentEnergy)
 
 void EnergyEvseDelegate::ApplicationCallbackHandler(const EVSECbInfo * cb, intptr_t arg)
 {
-    EnergyEvseDelegate * pClass = reinterpret_cast<EnergyEvseDelegate *>(arg);
+    auto pClass = static_cast<EnergyEvseDelegate *>(arg);
 
     switch (cb->type) {
         case EVSECallbackType::StateChanged: {
@@ -840,7 +840,7 @@ void EnergyEvseDelegate::ApplicationCallbackHandler(const EVSECbInfo * cb, intpt
             break;
         }
         case EVSECallbackType::ChargeCurrentChanged: {
-            int currentLimit = static_cast<int>(cb->ChargingCurrent.maximumChargeCurrent);
+            auto currentLimit = static_cast<int>(cb->ChargingCurrent.maximumChargeCurrent);
             PRINTF_DEBUG("EVSE callback - maxChargeCurrent changed to %d", currentLimit);
 
             pClass->ComputeChargingSchedule();
