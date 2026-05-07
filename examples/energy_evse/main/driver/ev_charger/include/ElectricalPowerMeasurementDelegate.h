@@ -32,9 +32,9 @@ public:
 
     void SetupDelegate(EndpointId id);
     EndpointId GetEndpointId() const { return mEndpointId; }
-    void AddCustomAttributes();
+    void AddCustomAttributes() const;
     void AddCustomFeatures(Feature aFeature);
-    void LateSetupAfterMatter();
+    void LateSetupAfterMatter() const;
 
     ~ElectricalPowerMeasurementDelegate() = default;
 

@@ -31,7 +31,6 @@ using namespace chip::app::DataModel;
 using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::ElectricalPowerMeasurement;
 using namespace chip::app::Clusters::ElectricalPowerMeasurement::Attributes;
-// using namespace chip::app::Clusters::ElectricalPowerMeasurement::Structs;
 
 using namespace CT::Charger;
 
@@ -52,11 +51,9 @@ void ElectricalPowerMeasurementDelegate::SetupDelegate(EndpointId id)
     SetEndpointId(id);
 
     AddCustomAttributes();
-
-    // AddCustomFeatures();
 }
 
-void ElectricalPowerMeasurementDelegate::AddCustomAttributes()
+void ElectricalPowerMeasurementDelegate::AddCustomAttributes() const
 {
     //add attributes that is not supported by the esp-matter libraries yet
     esp_matter::cluster_t * cluster =
@@ -75,7 +72,7 @@ void ElectricalPowerMeasurementDelegate::AddCustomFeatures(Feature aFeature)
     mFeature.Set(aFeature);
 }
 
-void ElectricalPowerMeasurementDelegate::LateSetupAfterMatter()
+void ElectricalPowerMeasurementDelegate::LateSetupAfterMatter() const
 {
     /*
      * Intentionally empty: Electrical Power Measurement needs no extra init after

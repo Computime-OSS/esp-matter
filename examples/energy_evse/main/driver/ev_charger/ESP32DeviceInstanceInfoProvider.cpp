@@ -1,6 +1,11 @@
 #include "helpers.h"
+#include "esp_mac.h"
 
 #include <esp_matter_core.h>
+#include <esp_mac.h>
+#include <lib/support/CHIPMemString.h>
+#include <platform/CHIPDeviceLayer.h>
+#include <string>
 
 #include <platform/internal/GenericDeviceInstanceInfoProvider.h>
 
@@ -45,22 +50,23 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetProductId(uint16_t & productId)
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetPartNumber(char * buf, size_t bufSize)
 {
 #if 1
-    constexpr size_t kMaxLen   = DeviceLayer::ConfigurationManager::kMaxLocationLength;
-    char location[kMaxLen + 1] = { 0 };
-    size_t codeLen             = 0;
+    constexpr size_t kMaxLen = DeviceLayer::ConfigurationManager::kMaxLocationLength;
+    std::string location(kMaxLen + 1, '\0');
+    size_t codeLen = 0;
 
-    CHIP_ERROR err = ConfigurationMgr().GetCountryCode(location, sizeof(location), codeLen);
-
-    if(err == CHIP_NO_ERROR)
+    CHIP_ERROR err = ConfigurationMgr().GetCountryCode(location.data(), location.size(), codeLen);
+    if (err == CHIP_NO_ERROR)
     {
-        if(strcmp(location, "FR") == 0)
-        {
-            //this is a special hardcoded string FR = Factory Reset
-            //if the location is set to FR and read this part number attribute
-            //we will do a factory reset as a quick work arround for demo purposes
-            PRINTF_DEBUG("Factory Reset triggered via PartNumber attribute read");
-            esp_matter::factory_reset();
-        }
+        location.resize(codeLen);
+    }
+
+    if (err == CHIP_NO_ERROR && location == "FR")
+    {
+        //this is a special hardcoded string FR = Factory Reset
+        //if the location is set to FR and read this part number attribute
+        //we will do a factory reset as a quick work arround for demo purposes
+        PRINTF_DEBUG("Factory Reset triggered via PartNumber attribute read");
+        esp_matter::factory_reset();
     }
 #endif
     return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
@@ -76,10 +82,6 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetProductLabel(char * buf, size_t b
     return CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
 }
 
-#include "esp_mac.h"
-#include <esp_mac.h>
-#include <lib/support/CHIPMemString.h>
-#include <platform/CHIPDeviceLayer.h>
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetSerialNumber(char * buf, size_t bufSize)
 {
     uint8_t mac[6];
@@ -107,7 +109,6 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetSerialNumber(char * buf, size_t b
 
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetManufacturingDate(uint16_t & year, uint8_t & month, uint8_t & day)
 {
-    CHIP_ERROR err = CHIP_NO_ERROR;
     enum
     {
         kDateStringLength = 10 // YYYY-MM-DD
