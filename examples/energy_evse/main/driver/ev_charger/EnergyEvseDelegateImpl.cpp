@@ -1,4 +1,5 @@
 #include <app/EventLogging.h>
+#include <cstddef>
 #include <string>
 
 #include "helpers.h"
@@ -1248,7 +1249,9 @@ CHIP_ERROR EnergyEvseDelegate::FindNextTarget(const BitMask<EnergyEvse::TargetDa
 
 void EnergyEvseDelegate::AdvanceScheduleSearchDay(BitMask<EnergyEvse::TargetDayOfWeekBitmap> & dayOfWeekMap)
 {
-    dayOfWeekMap = BitMask<EnergyEvse::TargetDayOfWeekBitmap>((dayOfWeekMap.Raw() << 1) & kAllTargetDaysMask);
+    const std::byte nextDayMask =
+        (std::byte{ static_cast<uint8_t>(dayOfWeekMap.Raw()) } << 1) & std::byte{ kAllTargetDaysMask };
+    dayOfWeekMap = BitMask<EnergyEvse::TargetDayOfWeekBitmap>(std::to_integer<uint8_t>(nextDayMask));
 
     if (!dayOfWeekMap.HasAny())
     {
