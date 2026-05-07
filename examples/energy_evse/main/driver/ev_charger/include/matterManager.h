@@ -19,8 +19,6 @@
 #include "PowerTopologyDelegate.h"
 #include "ElectricalPowerMeasurementDelegate.h"
 
-#define SUPPORT_DISCHARGING_V2X 0
-
 using chip::Protocols::InteractionModel::Status;
 
 namespace chip {
@@ -34,15 +32,15 @@ class PowerSourceDelegate
 private:
     /* data */
 public:
-    PowerSourceDelegate(){};
+    PowerSourceDelegate() = default;
 
-    void SetupDelegate(EndpointId id);
+    void SetupDelegate(chip::EndpointId id);
     void AddCustomAttributes();
     void AddCustomFeatures(Feature aFeature);
     void LateSetupAfterMatter();
 
-    EndpointId mEndpointId = 0;
-    BitMask<Feature> mFeature;
+    chip::EndpointId mEndpointId = 0;
+    chip::BitMask<Feature, uint32_t> mFeature;
 
     using config_t = esp_matter::cluster::power_source::config_t;
 
@@ -56,17 +54,7 @@ public:
 namespace CT {
 namespace Charger {
 
-using namespace chip;
-using namespace chip::app;
-using namespace chip::app::Clusters;
-using namespace chip::app::Clusters::EnergyEvse;
-using namespace chip::app::Clusters::EnergyEvseMode;
-using namespace chip::app::Clusters::DeviceEnergyManagement;
-using namespace chip::app::Clusters::PowerSource;
-using namespace chip::app::Clusters::PowerTopology;
-using namespace chip::app::Clusters::ElectricalPowerMeasurement;
-
-using namespace esp_matter;
+inline constexpr bool kSupportDischargingV2x = false;
 
 class MatterManager
 {
@@ -85,13 +73,13 @@ public:
     void InitializeMatterDeviceNode();
     void StartMatterStack();
 
-    static void Wrapper_MatterEventCb(const ChipDeviceEvent *event, intptr_t arg);
-    void HandleMatterEventCb(const ChipDeviceEvent *event);
+    static void Wrapper_MatterEventCb(const chip::DeviceLayer::ChipDeviceEvent *event, intptr_t arg);
+    void HandleMatterEventCb(const chip::DeviceLayer::ChipDeviceEvent *event);
 
     void HandleMatterAttributeUpdate(uint16_t endpoint_id, uint32_t cluster_id, uint32_t attribute_id, esp_matter_attr_val_t *val);
 
     bool isConnected;
-    node_t *device_node;
+    esp_matter::node_t *device_node;
 
     void UpdateState();
     void UpdateFaultState(uint8_t faultCode);
@@ -107,7 +95,7 @@ public:
     CHIP_ERROR SendReadings(int64_t aActivePower_mW, int64_t aVoltage_mV, int64_t aActiveCurrent_mA);
     CHIP_ERROR SendCumulativeEnergyReading(int64_t aCumulativeEnergyImported, int64_t aCumulativeEnergyExported);
 
-    static void ReportAttributeChangeToMatter(EndpointId endpoint, ClusterId clusterId, AttributeId attributeId);
+    static void ReportAttributeChangeToMatter(chip::EndpointId endpoint, chip::ClusterId clusterId, chip::AttributeId attributeId);
 
     // static void SendEventToMatter(EndpointId endpoint, uint32_t eventId, void* data);
 
@@ -116,13 +104,13 @@ public:
 
     chip::DeviceLayer::CTLEVDeviceInstanceInfoProvider     DIIProvider;
 
-    EnergyEvseDelegate                  EE_dg;
-    EnergyEvseModeDelegate              EEM_dg;
-    DeviceEnergyManagementDelegate      DEM_dg;
+    chip::app::Clusters::EnergyEvse::EnergyEvseDelegate EE_dg;
+    chip::app::Clusters::EnergyEvseMode::EnergyEvseModeDelegate EEM_dg;
+    chip::app::Clusters::DeviceEnergyManagement::DeviceEnergyManagementDelegate DEM_dg;
 
-    PowerSourceDelegate                 PS_dg;
-    PowerTopologyDelegate               PT_dg;
-    ElectricalPowerMeasurementDelegate  EPM_dg;
+    chip::app::Clusters::PowerSource::PowerSourceDelegate PS_dg;
+    chip::app::Clusters::PowerTopology::PowerTopologyDelegate PT_dg;
+    chip::app::Clusters::ElectricalPowerMeasurement::ElectricalPowerMeasurementDelegate EPM_dg;
 private:
     MatterManager();
 };

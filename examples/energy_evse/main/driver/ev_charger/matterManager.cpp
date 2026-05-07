@@ -651,7 +651,7 @@ void PowerSourceDelegate::SetupDelegate(EndpointId id)
 void PowerSourceDelegate::AddCustomAttributes()
 {
     using namespace esp_matter::cluster::power_source;
-    cluster_t *cluster = cluster::get(mEndpointId, PowerSource::Id);
+    esp_matter::cluster_t * cluster = esp_matter::cluster::get(mEndpointId, PowerSource::Id);
 
     // #define PowerSource_Des "CT Matter EVSE"
     // power_source::attribute::create_description(cluster, PowerSource_Des, strlen(PowerSource_Des));
@@ -666,7 +666,7 @@ void PowerSourceDelegate::AddCustomFeatures(Feature aFeature)
 
     mFeature.Set(aFeature);
 
-    cluster_t *cluster = cluster::get(mEndpointId, PowerSource::Id);
+    esp_matter::cluster_t * cluster = esp_matter::cluster::get(mEndpointId, PowerSource::Id);
 
     if (mFeature.Has(Feature::kWired)) {
         feature::wired::add(cluster, &(config.wired));

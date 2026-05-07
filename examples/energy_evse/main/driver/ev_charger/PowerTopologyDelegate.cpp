@@ -90,7 +90,8 @@ void PowerTopologyDelegate::AddCustomFeatures(Feature aFeature)
         using namespace esp_matter::cluster::power_topology;
         if (mFeature.Has(Feature::kDynamicPowerFlow))
         {
-            cluster_t *cluster = cluster::get(mEndpointId, Clusters::PowerTopology::Id);
+            esp_matter::cluster_t * cluster =
+                esp_matter::cluster::get(mEndpointId, Clusters::PowerTopology::Id);
             feature::dynamic_power_flow::add(cluster);
         }
     }

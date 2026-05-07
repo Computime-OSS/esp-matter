@@ -24,10 +24,11 @@ public:
 
     ~ChargerManager();
 
-    void SetMatterDelegateEnergyEvse(EnergyEvseDelegate* delegate) {
+    void SetMatterDelegateEnergyEvse(chip::app::Clusters::EnergyEvse::EnergyEvseDelegate * delegate)
+    {
         EE_dg = delegate;
     }
-    EnergyEvseDelegate* EE_dg;
+    chip::app::Clusters::EnergyEvse::EnergyEvseDelegate * EE_dg;
 
     void showChargerDetails();
     void showChargingSessionInfo();

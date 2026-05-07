@@ -78,7 +78,8 @@ void DeviceEnergyManagementDelegate::AddCustomFeatures(Feature aFeature)
     // add more features here, we can refer to esp_matter_cluster.cpp
     mFeature.Set(aFeature);
 
-    cluster_t *cluster = cluster::get(mEndpointId, Clusters::DeviceEnergyManagement::Id);
+    esp_matter::cluster_t * cluster =
+        esp_matter::cluster::get(mEndpointId, Clusters::DeviceEnergyManagement::Id);
 
     if (mFeature.Has(Feature::kPowerAdjustment)) {
         esp_matter::cluster::device_energy_management::feature::power_adjustment::add(cluster);

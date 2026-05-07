@@ -105,7 +105,8 @@ void ChargerManager::setDetectedCard(const std::string &uid)
 {
     PRINTF_DEBUG("Detected NFC Card UID: %s", reader_utf8);
     ChargerManager::Controller().processDetectedCard(uid);
-    ChargerManager::Controller().EE_dg->SendEvent_DetectedCard(ByteSpan(reinterpret_cast<const uint8_t *>(uid.data()), uid.size()));
+    ChargerManager::Controller().EE_dg->SendEvent_DetectedCard(
+        chip::ByteSpan(reinterpret_cast<const uint8_t *>(uid.data()), uid.size()));
 
     PRINTF_DEBUG("Detected a card UID: %s", uid.c_str());
 }
@@ -407,8 +408,9 @@ void ChargerManager::onSessionEnd()
 
 bool ChargerManager::checkHwFault()
 {
-    FaultStateEnum f = static_cast<FaultStateEnum>(pHwControl->getFaultCode());
-    if (f != FaultStateEnum::kNoError) {
+    chip::app::Clusters::EnergyEvse::FaultStateEnum f =
+        static_cast<chip::app::Clusters::EnergyEvse::FaultStateEnum>(pHwControl->getFaultCode());
+    if (f != chip::app::Clusters::EnergyEvse::FaultStateEnum::kNoError) {
         PRINTF_DEBUG("Fault detected! Fault code: 0x%02X", static_cast<uint8_t>(f));
         return true;
     }

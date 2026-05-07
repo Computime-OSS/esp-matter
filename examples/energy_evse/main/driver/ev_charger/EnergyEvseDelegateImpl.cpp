@@ -75,22 +75,30 @@ void EnergyEvseDelegate::SetupDelegate(EndpointId id)
 
     AddCustomAttributes();
     
-    AddCustomFeatures(
-        BitMask<EnergyEvse::Feature, uint32_t>(
-            EnergyEvse::Feature::kChargingPreferences,
-            EnergyEvse::Feature::kRfid,
-            EnergyEvse::Feature::kSoCReporting
-#if SUPPORT_DISCHARGING_V2X
-            , EnergyEvse::Feature::kV2x
-#endif
-        )
-    );
+    if constexpr (kSupportDischargingV2x)
+    {
+        AddCustomFeatures(
+            BitMask<EnergyEvse::Feature, uint32_t>(
+                EnergyEvse::Feature::kChargingPreferences,
+                EnergyEvse::Feature::kRfid,
+                EnergyEvse::Feature::kSoCReporting,
+                EnergyEvse::Feature::kV2x));
+    }
+    else
+    {
+        AddCustomFeatures(
+            BitMask<EnergyEvse::Feature, uint32_t>(
+                EnergyEvse::Feature::kChargingPreferences,
+                EnergyEvse::Feature::kRfid,
+                EnergyEvse::Feature::kSoCReporting));
+    }
 }
 
 void EnergyEvseDelegate::AddCustomAttributes()
 {
     //add attributes that is not supported by the esp-matter libraries yet
-    cluster_t *cluster = cluster::get(GetEndpointId(), Clusters::EnergyEvse::Id);
+    esp_matter::cluster_t * cluster =
+        esp_matter::cluster::get(GetEndpointId(), Clusters::EnergyEvse::Id);
 
     using namespace esp_matter::cluster;
     energy_evse::attribute::create_user_maximum_charge_current(cluster, ChargerManager::Controller().config.currentLimit_HW);
@@ -100,7 +108,8 @@ void EnergyEvseDelegate::AddCustomFeatures(Feature aFeature)
 {
     mFeature.Set(aFeature);
 
-    cluster_t *cluster = cluster::get(GetEndpointId(), Clusters::EnergyEvse::Id);
+    esp_matter::cluster_t * cluster =
+        esp_matter::cluster::get(GetEndpointId(), Clusters::EnergyEvse::Id);
 
     using namespace esp_matter::cluster::energy_evse;
     if (mFeature.Has(Feature::kChargingPreferences)) {
@@ -139,7 +148,7 @@ void EnergyEvseDelegate::LateSetupAfterMatter()
     HwRegisterEvseCallbackHandler(ApplicationCallbackHandler, reinterpret_cast<intptr_t>(this));
 }
 
-static const char* GetDayOfWeekStr(BitMask<EnergyEvse::TargetDayOfWeekBitmap> dayMask)
+[[maybe_unused]] static const char * GetDayOfWeekStr(BitMask<EnergyEvse::TargetDayOfWeekBitmap> dayMask)
 {
     if (dayMask.Has(EnergyEvse::TargetDayOfWeekBitmap::kMonday))    return "Monday";
     if (dayMask.Has(EnergyEvse::TargetDayOfWeekBitmap::kTuesday))   return "Tuesday";
@@ -222,11 +231,14 @@ Status EnergyEvseDelegate::EnableCharging(const DataModel::Nullable<uint32_t> & 
 }
 
 Status EnergyEvseDelegate::EnableDischarging(const DataModel::Nullable<uint32_t> & enableDischargeTime,const int64_t & maximumDischargeCurrent) {
-#if SUPPORT_DISCHARGING_V2X
-    return HandleChargingEnabledEvent();
-#else
-    return Status::UnsupportedAttribute;
-#endif
+    if constexpr (kSupportDischargingV2x)
+    {
+        return HandleChargingEnabledEvent();
+    }
+    else
+    {
+        return Status::UnsupportedAttribute;
+    }
 }
 
 static void FakeDiagnosticProcessEnd(System::Layer * systemLayer, void * appState)
@@ -1398,13 +1410,13 @@ CHIP_ERROR EnergyEvseDelegate::ComputeChargingSchedule()
     CHIP_ERROR err = CHIP_NO_ERROR;
 
     BitMask<EnergyEvse::TargetDayOfWeekBitmap> dayOfWeekMap = 0;
-    ReturnErrorOnFailure(GetLocalDayOfWeekNow(dayOfWeekMap));
+    ReturnErrorOnFailure(chip::app::Clusters::DeviceEnergyManagement::GetLocalDayOfWeekNow(dayOfWeekMap));
 
     uint16_t minutesPastMidnightNow_m = 0;
-    ReturnErrorOnFailure(GetMinutesPastMidnight(minutesPastMidnightNow_m));
+    ReturnErrorOnFailure(chip::app::Clusters::DeviceEnergyManagement::GetMinutesPastMidnight(minutesPastMidnightNow_m));
 
     uint32_t now_epoch_s = 0;
-    ReturnErrorOnFailure(GetEpochTS(now_epoch_s));
+    ReturnErrorOnFailure(chip::app::Clusters::DeviceEnergyManagement::GetEpochTS(now_epoch_s));
 
     // LOG: Entry state with human-readable conversions
     char humanTimeBuf[20];
@@ -1497,11 +1509,14 @@ Status EnergyEvseDelegate::HandleChargingEnabledEvent()
     }
 
     /* update SupplyState to say that charging is now enabled */
-#if SUPPORT_DISCHARGING_V2X
-    SetSupplyState(SupplyStateEnum::kDischargingEnabled);
-#else
-    SetSupplyState(SupplyStateEnum::kChargingEnabled);
-#endif
+    if constexpr (kSupportDischargingV2x)
+    {
+        SetSupplyState(SupplyStateEnum::kDischargingEnabled);
+    }
+    else
+    {
+        SetSupplyState(SupplyStateEnum::kChargingEnabled);
+    }
 
     switch (mState)
     {

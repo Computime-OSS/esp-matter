@@ -59,7 +59,8 @@ void ElectricalPowerMeasurementDelegate::SetupDelegate(EndpointId id)
 void ElectricalPowerMeasurementDelegate::AddCustomAttributes()
 {
     //add attributes that is not supported by the esp-matter libraries yet
-    cluster_t *cluster = cluster::get(mEndpointId, Clusters::ElectricalPowerMeasurement::Id);
+    esp_matter::cluster_t * cluster =
+        esp_matter::cluster::get(mEndpointId, Clusters::ElectricalPowerMeasurement::Id);
     
     using namespace esp_matter::cluster;
     
