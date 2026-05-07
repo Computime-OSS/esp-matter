@@ -1574,7 +1574,7 @@ Status EnergyEvseDelegate::ScheduleCheckOnEnabledTimeout()
     {
 
         /* time is sync'd */
-        int32_t delta = static_cast<int32_t>(enabledUntilTime.Value() - chipEpoch);
+        auto delta = static_cast<int32_t>(enabledUntilTime.Value() - chipEpoch);
         if (delta > 0)
         {
             /* The timer hasn't expired yet - set a timer to check in the future */
