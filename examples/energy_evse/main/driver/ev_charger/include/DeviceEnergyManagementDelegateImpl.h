@@ -37,7 +37,7 @@ public:
 
     void SetupDelegate(EndpointId id);
     // add custom attributes to the cluster, not to override the exisiting source codes
-    void AddCustomAttributes();
+    void AddCustomAttributes() const;
 
     BitMask<Feature> mFeature;
     void AddCustomFeatures(Feature aFeature);
@@ -272,7 +272,7 @@ private:
     CHIP_ERROR CancelPauseRequestAndGenerateEvent(CauseEnum cause);
 
     // Method to generate a Paused event
-    CHIP_ERROR GenerateResumedEvent(CauseEnum cause);
+    CHIP_ERROR GenerateResumedEvent(CauseEnum cause) const;
 
     bool ShouldCancelPowerAdjustForOptOut(OptOutStateEnum newValue);
     bool ShouldCancelPauseForOptOut(OptOutStateEnum newValue);

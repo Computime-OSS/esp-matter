@@ -76,7 +76,7 @@ void DeviceEnergyManagementDelegate::SetupDelegate(EndpointId id)
     );
 }
 
-void DeviceEnergyManagementDelegate::AddCustomAttributes()
+void DeviceEnergyManagementDelegate::AddCustomAttributes() const
 {
     // Add custom attributes here
 }
@@ -242,9 +242,9 @@ void DeviceEnergyManagementDelegate::HandlePowerAdjustRequestFailure()
  *
  * This static function calls the non-static HandlePowerAdjustTimerExpiry method.
  */
-void DeviceEnergyManagementDelegate::PowerAdjustTimerExpiry(System::Layer * systemLayer, void * delegate)
+void DeviceEnergyManagementDelegate::PowerAdjustTimerExpiry([[maybe_unused]]System::Layer * systemLayer, void * delegate)
 {
-    DeviceEnergyManagementDelegate * dg = reinterpret_cast<DeviceEnergyManagementDelegate *>(delegate);
+    auto dg = static_cast<DeviceEnergyManagementDelegate *>(delegate);
 
     dg->HandlePowerAdjustTimerExpiry();
 }
@@ -545,9 +545,9 @@ void DeviceEnergyManagementDelegate::HandlePauseRequestFailure()
  *
  * This static function calls the non-static HandlePauseRequestTimerExpiry method.
  */
-void DeviceEnergyManagementDelegate::PauseRequestTimerExpiry(System::Layer * systemLayer, void * delegate)
+void DeviceEnergyManagementDelegate::PauseRequestTimerExpiry([[maybe_unused]]System::Layer * systemLayer, void * delegate)
 {
-    DeviceEnergyManagementDelegate * dg = reinterpret_cast<DeviceEnergyManagementDelegate *>(delegate);
+    auto dg = static_cast<DeviceEnergyManagementDelegate *>(delegate);
 
     dg->HandlePauseRequestTimerExpiry();
 }
@@ -596,7 +596,7 @@ CHIP_ERROR DeviceEnergyManagementDelegate::CancelPauseRequestAndGenerateEvent(Ca
     DeviceLayer::SystemLayer().CancelTimer(PauseRequestTimerExpiry, this);
 
     CHIP_ERROR err  = GenerateResumedEvent(cause);
-    CHIP_ERROR err2 = CHIP_NO_ERROR;
+    auto err2 = CHIP_NO_ERROR;
 
     // Notify the appliance's that it can resume its intended power setting (or go idle)
     if (mpDEMManufacturerDelegate != nullptr)
@@ -623,7 +623,7 @@ CHIP_ERROR DeviceEnergyManagementDelegate::CancelPauseRequestAndGenerateEvent(Ca
  * @brief Generate a Resumed event
  *
  */
-CHIP_ERROR DeviceEnergyManagementDelegate::GenerateResumedEvent(CauseEnum cause)
+CHIP_ERROR DeviceEnergyManagementDelegate::GenerateResumedEvent(CauseEnum cause) const
 {
     Events::Resumed::Type event;
     EventNumber eventNumber;
@@ -962,8 +962,6 @@ CHIP_ERROR
 DeviceEnergyManagementDelegate::SetPowerAdjustmentCapability(
     const DataModel::Nullable<DeviceEnergyManagement::Structs::PowerAdjustCapabilityStruct::Type> & powerAdjustCapabilityStruct)
 {
-    // assertChipStackLockedByCurrentThread();
-
     mPowerAdjustCapabilityStruct = powerAdjustCapabilityStruct;
 
     MatterManager::ReportAttributeChangeToMatter(mEndpointId, DeviceEnergyManagement::Id, PowerAdjustmentCapability::Id);
@@ -1077,7 +1075,7 @@ CHIP_ERROR DeviceEnergyManagementDelegate::SetOptOutState(OptOutStateEnum newVal
         MatterManager::ReportAttributeChangeToMatter(mEndpointId, DeviceEnergyManagement::Id, OptOutState::Id);
     }
 
-    CHIP_ERROR err = CHIP_NO_ERROR;
+    auto err = CHIP_NO_ERROR;
     if (ShouldCancelPowerAdjustForOptOut(newValue))
     {
         err = CancelPowerAdjustRequestAndGenerateEvent(DeviceEnergyManagement::CauseEnum::kUserOptOut);
