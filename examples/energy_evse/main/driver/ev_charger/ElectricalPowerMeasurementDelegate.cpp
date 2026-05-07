@@ -19,6 +19,8 @@
 #include <ElectricalPowerMeasurementDelegate.h>
 #include <app/reporting/reporting.h>
 
+#include <iterator>
+
 #include <app/clusters/electrical-power-measurement-server/electrical-power-measurement-server.h>
 
 #include "matterManager.h"
@@ -74,7 +76,12 @@ void ElectricalPowerMeasurementDelegate::AddCustomFeatures(Feature aFeature)
 
 void ElectricalPowerMeasurementDelegate::LateSetupAfterMatter()
 {
-
+    /*
+     * Intentionally empty: Electrical Power Measurement needs no extra init after
+     * esp_matter::start(). SetupDelegate() registers attributes; MatterManager updates
+     * values via the Set* APIs. Other delegates implement this hook for post-start work;
+     * EPM_dg is not invoked on that path for this product.
+     */
 }
 
 CHIP_ERROR ElectricalPowerMeasurementDelegate::SetPowerMode(PowerModeEnum newValue)
@@ -203,7 +210,7 @@ static const ElectricalPowerMeasurement::Structs::MeasurementAccuracyStruct::Typ
 
 uint8_t ElectricalPowerMeasurementDelegate::GetNumberOfMeasurementTypes()
 {
-    return ArraySize(kMeasurementAccuracies);
+    return static_cast<uint8_t>(std::size(kMeasurementAccuracies));
 };
 
 /* @brief This function is called by the cluster server at the start of read cycle
@@ -218,7 +225,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::StartAccuracyRead()
 CHIP_ERROR ElectricalPowerMeasurementDelegate::GetAccuracyByIndex(uint8_t accuracyIndex,
                                                                   Structs::MeasurementAccuracyStruct::Type & accuracy)
 {
-    if (accuracyIndex >= ArraySize(kMeasurementAccuracies))
+    if (accuracyIndex >= std::size(kMeasurementAccuracies))
     {
         return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     }
@@ -262,7 +269,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::GetRangeByIndex(uint8_t rangeInde
      *   - .maxTimestamp (the time at which the maximum value was recorded)
      *   (and optionally use sys time equivalents)
      *
-     *   if (rangeIndex >= ArraySize(mMeasurementRanges))
+     *   if (rangeIndex >= std::size(mMeasurementRanges))
      *   {
      *       return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
      *   }
@@ -314,7 +321,7 @@ ElectricalPowerMeasurementDelegate::GetHarmonicCurrentsByIndex(uint8_t harmonicC
      */
 
     /* Added to support testing using a static array for now */
-    if (harmonicCurrentsIndex >= ArraySize(kHarmonicCurrentMeasurements))
+    if (harmonicCurrentsIndex >= std::size(kHarmonicCurrentMeasurements))
     {
         return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     }
@@ -359,7 +366,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::GetHarmonicPhasesByIndex(uint8_t 
      */
 
     /* Added to support testing using a static array for now */
-    if (harmonicPhaseIndex >= ArraySize(kHarmonicPhaseMeasurements))
+    if (harmonicPhaseIndex >= std::size(kHarmonicPhaseMeasurements))
     {
         return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     }
