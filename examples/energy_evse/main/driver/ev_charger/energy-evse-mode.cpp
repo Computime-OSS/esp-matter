@@ -16,6 +16,8 @@
  *    limitations under the License.
  */
 
+#include <iterator>
+
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <energy-evse-modes.h>
 
@@ -41,7 +43,7 @@ void EnergyEvseModeDelegate::HandleChangeToMode(uint8_t NewMode, ModeBase::Comma
 
 CHIP_ERROR EnergyEvseModeDelegate::GetModeLabelByIndex(uint8_t modeIndex, chip::MutableCharSpan & label)
 {
-    if (modeIndex >= ArraySize(kModeOptions))
+    if (modeIndex >= std::size(kModeOptions))
     {
         return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     }
@@ -50,7 +52,7 @@ CHIP_ERROR EnergyEvseModeDelegate::GetModeLabelByIndex(uint8_t modeIndex, chip::
 
 CHIP_ERROR EnergyEvseModeDelegate::GetModeValueByIndex(uint8_t modeIndex, uint8_t & value)
 {
-    if (modeIndex >= ArraySize(kModeOptions))
+    if (modeIndex >= std::size(kModeOptions))
     {
         return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     }
@@ -60,7 +62,7 @@ CHIP_ERROR EnergyEvseModeDelegate::GetModeValueByIndex(uint8_t modeIndex, uint8_
 
 CHIP_ERROR EnergyEvseModeDelegate::GetModeTagsByIndex(uint8_t modeIndex, List<ModeTagStructType> & tags)
 {
-    if (modeIndex >= ArraySize(kModeOptions))
+    if (modeIndex >= std::size(kModeOptions))
     {
         return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     }
