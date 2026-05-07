@@ -32,8 +32,15 @@ static constexpr time_t kMinValidTimeStampEpoch = 1704067200; // 1 Jan 2019
 static constexpr uint32_t kMilliSecondsInADay   = 24 * 60 * 60 * 1000;
 
 namespace {
-const uint8_t kMaxNtpServerStringSize = 128;
-char sSntpServerName[kMaxNtpServerStringSize + 1];
+
+constexpr uint8_t kMaxNtpServerStringSize = 128;
+
+/** SNTP retains the hostname pointer; lifetime must span the process — static local avoids a mutable TU-scope global. */
+char (& SntpServerNameBuffer())[kMaxNtpServerStringSize + 1]
+{
+    static char sBuf[kMaxNtpServerStringSize + 1];
+    return sBuf;
+}
 
 CHIP_ERROR GetLocalTimeString(char * buf, size_t buf_len)
 {
@@ -124,14 +131,14 @@ void Init(const char * aSntpServerName, const uint16_t aSyncSntpIntervalDay)
         PRINTF_DEBUG("Invalid SNTP synchronization time interval.");
         return;
     }
-    chip::Platform::CopyString(sSntpServerName, aSntpServerName);
+    chip::Platform::CopyString(SntpServerNameBuffer(), aSntpServerName);
     if (esp_sntp_enabled())
     {
         PRINTF_DEBUG("SNTP already initialized.");
     }
-    PRINTF_DEBUG("Initializing SNTP. Using the SNTP server: %s", sSntpServerName);
+    PRINTF_DEBUG("Initializing SNTP. Using the SNTP server: %s", SntpServerNameBuffer());
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    esp_sntp_setservername(0, sSntpServerName);
+    esp_sntp_setservername(0, SntpServerNameBuffer());
 
     esp_sntp_setservername(1, "time.salusconnect.io");
 	esp_sntp_setservername(2, "time1.salusconnect.io");
