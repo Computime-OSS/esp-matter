@@ -52,6 +52,67 @@ using chip::Protocols::InteractionModel::Status;
 namespace CT {
 namespace Charger {
 
+/** Alias for ESP-Matter callback private-data pointer (underlying type is still void *, per Espressif API). */
+using EspMatterCallbackOpaquePtr = void *;
+
+namespace {
+
+constexpr int kCommissioningWindowTimeoutSeconds = 300;
+
+unsigned GetActiveFabricCount()
+{
+    return chip::Server::GetInstance().GetFabricTable().FabricCount();
+}
+
+void UpdateIsConnectedFromFabricTable(MatterManager * self)
+{
+    self->isConnected = (GetActiveFabricCount() != 0);
+}
+
+/** @return true if a fabric is present (and isConnected was set true); false if none. */
+bool ApplyFabricPresenceToConnectedFlag(MatterManager * self)
+{
+    if (GetActiveFabricCount() != 0)
+    {
+        self->isConnected = true;
+        return true;
+    }
+    self->isConnected = false;
+    return false;
+}
+
+void TryReopenBasicCommissioningWindowIfClosed()
+{
+#if 1
+    chip::CommissioningWindowManager & commissionMgr = chip::Server::GetInstance().GetCommissioningWindowManager();
+    if (commissionMgr.IsCommissioningWindowOpen())
+    {
+        return;
+    }
+
+    constexpr auto kTimeoutSeconds = chip::System::Clock::Seconds16(kCommissioningWindowTimeoutSeconds);
+    CHIP_ERROR err = commissionMgr.OpenBasicCommissioningWindow(
+        kTimeoutSeconds, chip::CommissioningWindowAdvertisement::kAllSupported);
+    if (err != CHIP_NO_ERROR)
+    {
+        PRINTF_DEBUG("Failed to open commissioning window, err:%" CHIP_ERROR_FORMAT, err.Format());
+        return;
+    }
+    PRINTF_DEBUG("Re-opened commissioning window for %d seconds", kCommissioningWindowTimeoutSeconds);
+#endif
+}
+
+void ConsiderSntpAfterStaGotIp()
+{
+#if CONFIG_ENABLE_SNTP_TIME_SYNC
+    const char kNtpServerUrl[]             = "pool.ntp.org";
+    const uint16_t kSyncNtpTimeIntervalDay = 1;
+    chip::Esp32TimeSync::Init(kNtpServerUrl, kSyncNtpTimeIntervalDay);
+#endif
+}
+
+} // namespace
+
 static void RestoreAndPrintTime()
 {
     nvs_handle_t my_handle;
@@ -68,7 +129,8 @@ static void RestoreAndPrintTime()
         if (drift > 60) {
             // TIME IS SHIFTED: Restore from NVS
             struct timeval tv = {.tv_sec = (time_t)saved_sec, .tv_usec = 0};
-            if (settimeofday(&tv, NULL) != 0) {
+            if (settimeofday(&tv, nullptr) != 0)
+            {
                 PRINTF_DEBUG("Failed to set POSIX time");
                 return;
             }
@@ -103,14 +165,16 @@ static void RestoreAndPrintTime()
 }
 
 static esp_err_t app_identification_cb(identification::callback_type_t type, uint16_t endpoint_id, uint8_t effect_id,
-                                       uint8_t effect_variant, void *priv_data)
+                                       uint8_t effect_variant, EspMatterCallbackOpaquePtr espMatterCallbackOpaquePrivData)
 {
+    (void)espMatterCallbackOpaquePrivData;
     PRINTF_DEBUG("Identification callback: type: %d, effect: %d", type, effect_id);
     return ESP_OK;
 }
 
 static esp_err_t app_attribute_update_cb(attribute::callback_type_t type, uint16_t endpoint_id, uint32_t cluster_id,
-                                         uint32_t attribute_id, esp_matter_attr_val_t *val, void *priv_data)
+                                         uint32_t attribute_id, esp_matter_attr_val_t * val,
+                                         EspMatterCallbackOpaquePtr espMatterCallbackOpaquePrivData)
 {
     esp_err_t err = ESP_OK;
     PRINTF_DEBUG("Received attribute update type: %s (0x%0X 0x%0X 0x%0X)", 
@@ -125,40 +189,29 @@ static esp_err_t app_attribute_update_cb(attribute::callback_type_t type, uint16
         /* Driver update */
         MatterManager::GetInstance().HandleMatterAttributeUpdate(endpoint_id, cluster_id, attribute_id, val);
     }
+    (void) espMatterCallbackOpaquePrivData;
     return err;
 }
 
-constexpr auto k_timeout_seconds = 300;
 void MatterManager::HandleMatterEventCb(const ChipDeviceEvent *event)
 {
     using namespace chip::DeviceLayer;
 
-    switch (event->Type) {
-        case DeviceEventType::kInterfaceIpAddressChanged:
-            PRINTF_DEBUG("Interface IP Address changed");
-            if (chip::Server::GetInstance().GetFabricTable().FabricCount() != 0) {
-                this->isConnected = true;
-            } else {
-                this->isConnected = false;
-            }
+    switch (event->Type)
+    {
+    case DeviceEventType::kInterfaceIpAddressChanged:
+        PRINTF_DEBUG("Interface IP Address changed");
+        UpdateIsConnectedFromFabricTable(this);
         break;
 
     case DeviceEventType::kCommissioningComplete:
         PRINTF_DEBUG("Commissioning complete");
-        if (chip::Server::GetInstance().GetFabricTable().FabricCount() != 0) {
-            this->isConnected = true;
-        } else {
-            this->isConnected = false;
-        }
+        UpdateIsConnectedFromFabricTable(this);
         break;
 
     case DeviceEventType::kFailSafeTimerExpired:
         PRINTF_DEBUG("Commissioning failed, fail safe timer expired");
-        if (chip::Server::GetInstance().GetFabricTable().FabricCount() != 0) {
-            this->isConnected = true;
-        } else {
-            this->isConnected = false;
-        }
+        UpdateIsConnectedFromFabricTable(this);
         break;
 
     case DeviceEventType::kCommissioningSessionStarted:
@@ -170,81 +223,41 @@ void MatterManager::HandleMatterEventCb(const ChipDeviceEvent *event)
         break;
 
     case DeviceEventType::kCommissioningWindowOpened:
-        {
-            PRINTF_DEBUG("Commissioning window opened");
+        PRINTF_DEBUG("Commissioning window opened");
 #if 0
-            // check Wi-Fi credentials to determine if it's first boot or not, if Wi-Fi credentials exist, it means it's
-            // not first boot but the device is not commissioned, so we can log different message for those two cases.
+        // check Wi-Fi credentials to determine if it's first boot or not, if Wi-Fi credentials exist, it means it's
+        // not first boot but the device is not commissioned, so we can log different message for those two cases.
+        {
             wifi_config_t wifi_config;
             esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &wifi_config);
-            if (err == ESP_OK && wifi_config.sta.ssid[0] != '\0') {
+            if (err == ESP_OK && wifi_config.sta.ssid[0] != '\0')
+            {
                 PRINTF_DEBUG("Fabric is removed so we disconnect from the network and clear Wi-Fi credentials for demo purposes.");
-                // then disconnect Wi-Fi if connected
                 esp_wifi_disconnect();
-                // remove Wi-Fi credentials to make sure it's clean for commissioning
                 wifi_config_t empty_config = {};
                 esp_wifi_set_config(WIFI_IF_STA, &empty_config);
             }
-#endif
-
         }
+#endif
         break;
 
     case DeviceEventType::kCommissioningWindowClosed:
+        PRINTF_DEBUG("Commissioning window closed");
+        if (ApplyFabricPresenceToConnectedFlag(this))
         {
-            PRINTF_DEBUG("Commissioning window closed");
-
-            if (chip::Server::GetInstance().GetFabricTable().FabricCount() != 0) {
-                this->isConnected = true;
-                break;
-            } else {
-                this->isConnected = false;
-            }
-#if 1
-            chip::CommissioningWindowManager &commissionMgr = chip::Server::GetInstance().GetCommissioningWindowManager();
-            if (!commissionMgr.IsCommissioningWindowOpen()) {
-                constexpr auto kTimeoutSeconds = chip::System::Clock::Seconds16(k_timeout_seconds);
-                CHIP_ERROR err = commissionMgr.OpenBasicCommissioningWindow(
-                    kTimeoutSeconds, chip::CommissioningWindowAdvertisement::kAllSupported);
-                if (err != CHIP_NO_ERROR) {
-                    PRINTF_DEBUG("Failed to open commissioning window, err:%" CHIP_ERROR_FORMAT, err.Format());
-                } else {
-                    PRINTF_DEBUG("Re-opened commissioning window for %d seconds", k_timeout_seconds);
-                }
-            }
-#endif
+            break;
         }
+        TryReopenBasicCommissioningWindowIfClosed();
         break;
 
     case DeviceEventType::kFabricRemoved:
+        PRINTF_DEBUG("Fabric removed successfully");
+        if (ApplyFabricPresenceToConnectedFlag(this))
         {
-            PRINTF_DEBUG("Fabric removed successfully");
-
-            if (chip::Server::GetInstance().GetFabricTable().FabricCount() != 0) {
-                this->isConnected = true;
-                break;
-            } else {
-                this->isConnected = false;
-            }
-#if 1
-            chip::CommissioningWindowManager &commissionMgr = chip::Server::GetInstance().GetCommissioningWindowManager();
-            if (!commissionMgr.IsCommissioningWindowOpen()) {
-                /* After removing last fabric, this example does not remove the Wi-Fi credentials
-                 * and still has IP connectivity so, only advertising on DNS-SD.
-                 */
-
-                constexpr auto kTimeoutSeconds = chip::System::Clock::Seconds16(k_timeout_seconds);
-                CHIP_ERROR err = commissionMgr.OpenBasicCommissioningWindow(
-                    kTimeoutSeconds, chip::CommissioningWindowAdvertisement::kAllSupported);
-                if (err != CHIP_NO_ERROR) {
-                    PRINTF_DEBUG("Failed to open commissioning window, err:%" CHIP_ERROR_FORMAT, err.Format());
-                } else {
-                    PRINTF_DEBUG("Re-opened commissioning window for %d seconds", k_timeout_seconds);
-                }
-            }
-#endif
-        break;
+            break;
         }
+        TryReopenBasicCommissioningWindowIfClosed();
+        break;
 
     case DeviceEventType::kFabricWillBeRemoved:
         PRINTF_DEBUG("Fabric will be removed");
@@ -259,22 +272,18 @@ void MatterManager::HandleMatterEventCb(const ChipDeviceEvent *event)
         break;
 
     case DeviceEventType::kESPSystemEvent:
-        if (event->Platform.ESPSystemEvent.Base == IP_EVENT &&
-            event->Platform.ESPSystemEvent.Id == IP_EVENT_STA_GOT_IP) {
-                PRINTF_DEBUG("IP_EVENT_STA_GOT_IP");
-
-#if CONFIG_ENABLE_SNTP_TIME_SYNC
-                const char kNtpServerUrl[]             = "pool.ntp.org";
-                const uint16_t kSyncNtpTimeIntervalDay = 1;
-                chip::Esp32TimeSync::Init(kNtpServerUrl, kSyncNtpTimeIntervalDay);
-#endif
+        if (event->Platform.ESPSystemEvent.Base != IP_EVENT ||
+            event->Platform.ESPSystemEvent.Id != IP_EVENT_STA_GOT_IP)
+        {
+            break;
         }
+        PRINTF_DEBUG("IP_EVENT_STA_GOT_IP");
+        ConsiderSntpAfterStaGotIp();
         break;
 
-    default: {
+    default:
         PRINTF_DEBUG("Event[0x%x] Not implmentated!", event->Type);
         break;
-    }
     }
 }
 
@@ -321,7 +330,7 @@ void MatterManager::InitializeMatterDeviceNode()
     ee_cfg.energy_evse_mode.delegate = &EEM_dg;
     // ee_cfg.device_energy_management.delegate = &DEM_dg;
 #endif
-    endpoint_t *evse_endpoint = endpoint::energy_evse::create(this->device_node, &ee_cfg, ENDPOINT_FLAG_NONE, NULL);
+    endpoint_t *evse_endpoint = endpoint::energy_evse::create(this->device_node, &ee_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!evse_endpoint) {
         PRINTF_DEBUG("Matter create endpoint failed");
         return;
@@ -330,7 +339,8 @@ void MatterManager::InitializeMatterDeviceNode()
     // DEM_dg.SetupDelegate(endpoint::get_id(evse_endpoint));
 /*===============================================================================================*/
     endpoint::power_source_device::config_t power_source_config;
-    endpoint_t *ps_endpoint = endpoint::power_source_device::create(this->device_node, &power_source_config, ENDPOINT_FLAG_NONE, NULL);
+    endpoint_t *ps_endpoint =
+        endpoint::power_source_device::create(this->device_node, &power_source_config, ENDPOINT_FLAG_NONE, nullptr);
     if (!ps_endpoint) {
         PRINTF_DEBUG("Matter create endpoint failed");
         return;
@@ -344,7 +354,7 @@ void MatterManager::InitializeMatterDeviceNode()
     es_cfg.power_topology.delegate = &PT_dg;
     es_cfg.electrical_power_measurement.delegate = &EPM_dg;
 
-    endpoint_t *es_endpoint = endpoint::electrical_sensor::create(this->device_node, &es_cfg, ENDPOINT_FLAG_NONE, NULL);
+    endpoint_t *es_endpoint = endpoint::electrical_sensor::create(this->device_node, &es_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!es_endpoint) {
         PRINTF_DEBUG("Matter create endpoint failed");
         return;
@@ -361,7 +371,8 @@ void MatterManager::InitializeMatterDeviceNode()
     endpoint::device_energy_management::config_t dem_cfg;
     dem_cfg.device_energy_management.delegate = &DEM_dg;
 
-    endpoint_t *dem_endpoint = endpoint::device_energy_management::create(this->device_node, &dem_cfg, ENDPOINT_FLAG_NONE, NULL);
+    endpoint_t *dem_endpoint =
+        endpoint::device_energy_management::create(this->device_node, &dem_cfg, ENDPOINT_FLAG_NONE, nullptr);
     if (!dem_endpoint) {
         PRINTF_DEBUG("Matter create endpoint failed");
         return;
@@ -397,20 +408,29 @@ void MatterManager::StartMatterStack()
     DEBUG_CHECKPOINT("Start Matter SDK ... Done");
 }
 
-void MatterManager::HandleMatterAttributeUpdate(uint16_t endpoint_id, uint32_t cluster_id, uint32_t attribute_id, esp_matter_attr_val_t *val)
+void MatterManager::HandleMatterAttributeUpdate(uint16_t endpoint_id, uint32_t cluster_id, uint32_t attribute_id,
+                                                esp_matter_attr_val_t * val)
 {
-    if (endpoint_id == EE_dg.GetEndpointId()) {
-        if (cluster_id == Clusters::EnergyEvse::Id) {
-            if (attribute_id == EnergyEvse::Attributes::UserMaximumChargeCurrent::Id) {
-                PRINTF_DEBUG("EnergyEvse::Attributes::UserMaximumChargeCurrent %llu", val->val.i64);
-            } else if (attribute_id == EnergyEvse::Attributes::ChargingEnabledUntil::Id) {
-                if(val->val.p == nullptr){
-                    PRINTF_DEBUG("EnergyEvse::Attributes::ChargingEnabledUntil Forever!");
-                } else {
-                    PRINTF_DEBUG("EnergyEvse::Attributes::ChargingEnabledUntil %llu", val->val.u32);
-                }
-            }
-        }
+    if (endpoint_id != EE_dg.GetEndpointId() || cluster_id != Clusters::EnergyEvse::Id)
+    {
+        return;
+    }
+    if (attribute_id == EnergyEvse::Attributes::UserMaximumChargeCurrent::Id)
+    {
+        PRINTF_DEBUG("EnergyEvse::Attributes::UserMaximumChargeCurrent %llu", val->val.i64);
+        return;
+    }
+    if (attribute_id != EnergyEvse::Attributes::ChargingEnabledUntil::Id)
+    {
+        return;
+    }
+    if (val->val.p == nullptr)
+    {
+        PRINTF_DEBUG("EnergyEvse::Attributes::ChargingEnabledUntil Forever!");
+    }
+    else
+    {
+        PRINTF_DEBUG("EnergyEvse::Attributes::ChargingEnabledUntil %llu", val->val.u32);
     }
 }
 
@@ -685,8 +705,9 @@ void PowerSourceDelegate::AddCustomFeatures(Feature aFeature)
 void PowerSourceDelegate::LateSetupAfterMatter()
 {
     PRINTF_DEBUG();
-    #define PowerSource_Des "CT Matter EVSE"
-    esp_matter_attr_val_t val = esp_matter_char_str(PowerSource_Des, strlen(PowerSource_Des));
+    static char kPowerSourceDescription[] = "CT Matter EVSE";
+    esp_matter_attr_val_t val =
+        esp_matter_char_str(kPowerSourceDescription, sizeof(kPowerSourceDescription) - 1);
     esp_err_t err = esp_matter::attribute::report(this->mEndpointId, PowerSource::Id, PowerSource::Attributes::Description::Id, &val);
     PRINTF_DEBUG("Power Source Description: %s (%s)", (char*)(val.val.a.b), err==ESP_OK?"OK":"Failed");
 
