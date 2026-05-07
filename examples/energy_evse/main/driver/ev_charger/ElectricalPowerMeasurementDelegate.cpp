@@ -384,7 +384,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::EndHarmonicPhasesRead()
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetVoltage(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetVoltage(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mVoltage;
 
@@ -398,7 +398,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetVoltage(DataModel::Nullable<in
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetActiveCurrent(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetActiveCurrent(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mActiveCurrent;
 
@@ -412,7 +412,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetActiveCurrent(DataModel::Nulla
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetReactiveCurrent(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetReactiveCurrent(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mReactiveCurrent;
 
@@ -425,7 +425,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetReactiveCurrent(DataModel::Nul
 
     return CHIP_NO_ERROR;
 }
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetApparentCurrent(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetApparentCurrent(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mApparentCurrent;
 
@@ -438,7 +438,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetApparentCurrent(DataModel::Nul
 
     return CHIP_NO_ERROR;
 }
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetActivePower(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetActivePower(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mActivePower;
 
@@ -451,7 +451,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetActivePower(DataModel::Nullabl
 
     return CHIP_NO_ERROR;
 }
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetReactivePower(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetReactivePower(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mReactivePower;
 
@@ -464,7 +464,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetReactivePower(DataModel::Nulla
 
     return CHIP_NO_ERROR;
 }
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetApparentPower(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetApparentPower(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mApparentPower;
 
@@ -477,7 +477,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetApparentPower(DataModel::Nulla
 
     return CHIP_NO_ERROR;
 }
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetRMSVoltage(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetRMSVoltage(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mRMSVoltage;
 
@@ -490,7 +490,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetRMSVoltage(DataModel::Nullable
 
     return CHIP_NO_ERROR;
 }
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetRMSCurrent(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetRMSCurrent(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mRMSCurrent;
 
@@ -503,7 +503,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetRMSCurrent(DataModel::Nullable
 
     return CHIP_NO_ERROR;
 }
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetRMSPower(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetRMSPower(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mRMSPower;
 
@@ -516,7 +516,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetRMSPower(DataModel::Nullable<i
 
     return CHIP_NO_ERROR;
 }
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetFrequency(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetFrequency(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mFrequency;
 
@@ -532,7 +532,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetFrequency(DataModel::Nullable<
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetPowerFactor(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetPowerFactor(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mPowerFactor;
 
@@ -546,7 +546,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetPowerFactor(DataModel::Nullabl
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR ElectricalPowerMeasurementDelegate::SetNeutralCurrent(DataModel::Nullable<int64_t> newValue)
+CHIP_ERROR ElectricalPowerMeasurementDelegate::SetNeutralCurrent(const DataModel::Nullable<int64_t> & newValue)
 {
     DataModel::Nullable<int64_t> oldValue = mNeutralCurrent;
 

@@ -83,19 +83,19 @@ public:
 
     // Internal Application API to set attribute values
     CHIP_ERROR SetPowerMode(PowerModeEnum);
-    CHIP_ERROR SetVoltage(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetActiveCurrent(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetReactiveCurrent(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetApparentCurrent(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetActivePower(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetReactivePower(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetApparentPower(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetRMSVoltage(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetRMSCurrent(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetRMSPower(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetFrequency(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetPowerFactor(DataModel::Nullable<int64_t>);
-    CHIP_ERROR SetNeutralCurrent(DataModel::Nullable<int64_t>);
+    CHIP_ERROR SetVoltage(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetActiveCurrent(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetReactiveCurrent(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetApparentCurrent(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetActivePower(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetReactivePower(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetApparentPower(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetRMSVoltage(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetRMSCurrent(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetRMSPower(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetFrequency(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetPowerFactor(const DataModel::Nullable<int64_t> &);
+    CHIP_ERROR SetNeutralCurrent(const DataModel::Nullable<int64_t> &);
 
 private:
     BitMask<Feature> mFeature;
