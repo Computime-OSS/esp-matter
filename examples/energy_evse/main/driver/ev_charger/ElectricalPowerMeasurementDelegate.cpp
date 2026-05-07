@@ -19,7 +19,7 @@
 #include <ElectricalPowerMeasurementDelegate.h>
 #include <app/reporting/reporting.h>
 
-#include <iterator>
+#include <array>
 
 #include <app/clusters/electrical-power-measurement-server/electrical-power-measurement-server.h>
 
@@ -101,7 +101,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::SetPowerMode(PowerModeEnum newVal
     return CHIP_NO_ERROR;
 }
 
-const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type activePowerAccuracyRanges[] = {
+const std::array<ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type, 3> activePowerAccuracyRanges = {{
     // 2 - 5%, 3% Typ
     {
         .rangeMin       = -50'000'000, // -50kW
@@ -126,9 +126,9 @@ const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type 
         .percentMin     = MakeOptional(static_cast<chip::Percent100ths>(2000)),
         .percentTypical = MakeOptional(static_cast<chip::Percent100ths>(3000)),
     },
-};
+}};
 
-const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type activeCurrentAccuracyRanges[] = {
+const std::array<ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type, 3> activeCurrentAccuracyRanges = {{
     // 2 - 5%, 3% Typ
     {
         .rangeMin       = -100'000, // -100A
@@ -153,9 +153,9 @@ const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type 
         .percentMin     = MakeOptional(static_cast<chip::Percent100ths>(2000)),
         .percentTypical = MakeOptional(static_cast<chip::Percent100ths>(3000)),
     },
-};
+}};
 
-const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type voltageAccuracyRanges[] = {
+const std::array<ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type, 3> voltageAccuracyRanges = {{
     // 2 - 5%, 3% Typ
     {
         .rangeMin       = -500'000, // -500V
@@ -180,35 +180,38 @@ const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type 
         .percentMin     = MakeOptional(static_cast<chip::Percent100ths>(2000)),
         .percentTypical = MakeOptional(static_cast<chip::Percent100ths>(3000)),
     }
-};
+}};
 
-static const ElectricalPowerMeasurement::Structs::MeasurementAccuracyStruct::Type kMeasurementAccuracies[] = {
+static const std::array<ElectricalPowerMeasurement::Structs::MeasurementAccuracyStruct::Type, 3> kMeasurementAccuracies = {{
     {
         .measurementType  = MeasurementTypeEnum::kActivePower,
         .measured         = true,
         .minMeasuredValue = -50'000'000, // -50 kW
         .maxMeasuredValue = 50'000'000,  //  50 kW
-        .accuracyRanges   = DataModel::List<const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type>(activePowerAccuracyRanges),
+        .accuracyRanges   = DataModel::List<const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type>(
+            activePowerAccuracyRanges.data(), activePowerAccuracyRanges.size()),
     },
     {
         .measurementType  = MeasurementTypeEnum::kActiveCurrent,
         .measured         = true,
         .minMeasuredValue = -100'000, // -100A
         .maxMeasuredValue = 100'000,  //  100A
-        .accuracyRanges   = DataModel::List<const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type>(activeCurrentAccuracyRanges),
+        .accuracyRanges   = DataModel::List<const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type>(
+            activeCurrentAccuracyRanges.data(), activeCurrentAccuracyRanges.size()),
     },
     {
         .measurementType  = MeasurementTypeEnum::kVoltage,
         .measured         = true,
         .minMeasuredValue = -500'000, // -500V
         .maxMeasuredValue = 500'000,  //  500V
-        .accuracyRanges   = DataModel::List<const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type>(voltageAccuracyRanges),
+        .accuracyRanges   = DataModel::List<const ElectricalPowerMeasurement::Structs::MeasurementAccuracyRangeStruct::Type>(
+            voltageAccuracyRanges.data(), voltageAccuracyRanges.size()),
     },
-};
+}};
 
 uint8_t ElectricalPowerMeasurementDelegate::GetNumberOfMeasurementTypes()
 {
-    return static_cast<uint8_t>(std::size(kMeasurementAccuracies));
+    return static_cast<uint8_t>(kMeasurementAccuracies.size());
 };
 
 /* @brief This function is called by the cluster server at the start of read cycle
@@ -223,7 +226,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::StartAccuracyRead()
 CHIP_ERROR ElectricalPowerMeasurementDelegate::GetAccuracyByIndex(uint8_t accuracyIndex,
                                                                   Structs::MeasurementAccuracyStruct::Type & accuracy)
 {
-    if (accuracyIndex >= std::size(kMeasurementAccuracies))
+    if (accuracyIndex >= kMeasurementAccuracies.size())
     {
         return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     }
@@ -290,9 +293,9 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::EndRangesRead()
     return CHIP_NO_ERROR;
 }
 
-static const ElectricalPowerMeasurement::Structs::HarmonicMeasurementStruct::Type kHarmonicCurrentMeasurements[] = {
+static const std::array<ElectricalPowerMeasurement::Structs::HarmonicMeasurementStruct::Type, 1> kHarmonicCurrentMeasurements = {{
     { .order = 1, .measurement = MakeNullable(static_cast<int64_t>(100000)) }
-};
+}};
 
 /* @brief This function is called by the cluster server at the start of read cycle
  *        This could take a semaphore to stop a background update of the data
@@ -319,7 +322,7 @@ ElectricalPowerMeasurementDelegate::GetHarmonicCurrentsByIndex(uint8_t harmonicC
      */
 
     /* Added to support testing using a static array for now */
-    if (harmonicCurrentsIndex >= std::size(kHarmonicCurrentMeasurements))
+    if (harmonicCurrentsIndex >= kHarmonicCurrentMeasurements.size())
     {
         return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     }
@@ -336,9 +339,9 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::EndHarmonicCurrentsRead()
     return CHIP_NO_ERROR;
 }
 
-static const ElectricalPowerMeasurement::Structs::HarmonicMeasurementStruct::Type kHarmonicPhaseMeasurements[] = {
+static const std::array<ElectricalPowerMeasurement::Structs::HarmonicMeasurementStruct::Type, 1> kHarmonicPhaseMeasurements = {{
     { .order = 1, .measurement = MakeNullable(static_cast<int64_t>(100000)) }
-};
+}};
 
 /* @brief This function is called by the cluster server at the start of read cycle
  *        This could take a semaphore to stop a background update of the data
@@ -364,7 +367,7 @@ CHIP_ERROR ElectricalPowerMeasurementDelegate::GetHarmonicPhasesByIndex(uint8_t 
      */
 
     /* Added to support testing using a static array for now */
-    if (harmonicPhaseIndex >= std::size(kHarmonicPhaseMeasurements))
+    if (harmonicPhaseIndex >= kHarmonicPhaseMeasurements.size())
     {
         return CHIP_ERROR_PROVIDER_LIST_EXHAUSTED;
     }
