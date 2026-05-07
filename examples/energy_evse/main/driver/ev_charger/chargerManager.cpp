@@ -103,7 +103,7 @@ ChargerStatus_t ChargerManager::findNextChargerStatus(ChargerStatus_t current)
 
 void ChargerManager::setDetectedCard(const std::string &uid) 
 {
-    PRINTF_DEBUG("Detected NFC Card UID: %s", reader_utf8);
+    // PRINTF_DEBUG("Detected NFC Card UID: %s", reader_utf8);
     ChargerManager::Controller().processDetectedCard(uid);
     ChargerManager::Controller().EE_dg->SendEvent_DetectedCard(
         chip::ByteSpan(reinterpret_cast<const uint8_t *>(uid.data()), uid.size()));

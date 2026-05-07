@@ -28,7 +28,7 @@ using namespace chip::app::DataModel;
 using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::EnergyEvse;
 
-ChargingTargetsMemMgr::ChargingTargetsMemMgr() : mChargingTargetSchedulesIdx(0), mNumDailyChargingTargets(0)
+ChargingTargetsMemMgr::ChargingTargetsMemMgr()
 {
     memset(mpListOfDays, 0, sizeof(mpListOfDays));
 }

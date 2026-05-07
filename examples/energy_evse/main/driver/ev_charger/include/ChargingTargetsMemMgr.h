@@ -152,8 +152,8 @@ public:
 private:
     EnergyEvse::Structs::ChargingTargetStruct::Type * mpListOfDays[kEvseTargetsMaxNumberOfDays];
     EnergyEvse::Structs::ChargingTargetStruct::Type mDailyChargingTargets[kEvseTargetsMaxTargetsPerDay];
-    uint16_t mChargingTargetSchedulesIdx;
-    uint16_t mNumDailyChargingTargets;
+    uint16_t mChargingTargetSchedulesIdx = 0;
+    uint16_t mNumDailyChargingTargets = 0;
 };
 
 } // namespace EnergyEvse

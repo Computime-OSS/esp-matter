@@ -53,7 +53,7 @@ CHIP_ERROR GetEpochTS(uint32_t & chipEpoch)
     // 1. Check the underlying POSIX system time (standard C)
     // time_t posix_now;
     // time(&posix_now);
-    PRINTF_DEBUG("DEBUG: Standard POSIX time(NULL): %ld", (long)posix_now);
+    // PRINTF_DEBUG("DEBUG: Standard POSIX time(NULL): %ld", (long)posix_now);
 
     // 2. Check what the Matter System Clock is reporting
     System::Clock::Milliseconds64 cTMs;
