@@ -30,8 +30,8 @@ class ElectricalPowerMeasurementDelegate : public ElectricalPowerMeasurement::De
 {
 public:
 
-    EndpointId mEndpointId = 0;
     void SetupDelegate(EndpointId id);
+    EndpointId GetEndpointId() const { return mEndpointId; }
     void AddCustomAttributes();
     void AddCustomFeatures(Feature aFeature);
     void LateSetupAfterMatter();

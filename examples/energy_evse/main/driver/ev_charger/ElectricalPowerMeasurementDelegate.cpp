@@ -47,7 +47,6 @@ void ElectricalPowerMeasurementInstance::Shutdown()
 
 void ElectricalPowerMeasurementDelegate::SetupDelegate(EndpointId id)
 {
-    mEndpointId = id;
     SetEndpointId(id);
 
     AddCustomAttributes();

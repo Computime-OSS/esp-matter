@@ -35,8 +35,6 @@ class DeviceEnergyManagementDelegate : public DeviceEnergyManagement::Delegate
 public:
     DeviceEnergyManagementDelegate();
 
-    // store this case the matter sdk dont provide the method to get the endpoint id
-    EndpointId mEndpointId = 0;
     void SetupDelegate(EndpointId id);
     // add custom attributes to the cluster, not to override the exisiting source codes
     void AddCustomAttributes();

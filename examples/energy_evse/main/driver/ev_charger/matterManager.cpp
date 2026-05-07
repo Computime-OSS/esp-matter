@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <esp_wifi.h>
 #include "esp_err.h"
@@ -83,12 +84,14 @@ static void RestoreAndPrintTime()
 
         // Print the time in human way
         char nowStr[20];
-        time_t now = time(nullptr);
-        strftime(nowStr, sizeof(nowStr), "%Y-%m-%d %H:%M:%S", localtime(&now));
-        
+        time_t display_time = time(nullptr);
+        struct tm tm_buf {};
+        localtime_r(&display_time, &tm_buf);
+        strftime(nowStr, sizeof(nowStr), "%Y-%m-%d %H:%M:%S", &tm_buf);
+
         sntp_set_sync_status(SNTP_SYNC_STATUS_COMPLETED);
 
-        PRINTF_DEBUG("POSIX time successfully set to: %s(%ld)", nowStr, (long)now);
+        PRINTF_DEBUG("POSIX time successfully set to: %s(%ld)", nowStr, (long) display_time);
     } else {
         // First boot or no data: Save current time to NVS
         nvs_set_i64(my_handle, "sync_sec", (int64_t)now);
@@ -544,7 +547,7 @@ CHIP_ERROR MatterManager::SendCumulativeEnergyReading(int64_t aCumulativeEnergyI
 {
     using namespace chip::app::Clusters::ElectricalEnergyMeasurement::Structs;
 
-    MeasurementData * data = MeasurementDataForEndpoint(EPM_dg.mEndpointId);
+    MeasurementData * data = MeasurementDataForEndpoint(EPM_dg.GetEndpointId());
     VerifyOrReturnError(data != nullptr, CHIP_ERROR_UNINITIALIZED);
 
     EnergyMeasurementStruct::Type energyImported;
@@ -596,7 +599,7 @@ CHIP_ERROR MatterManager::SendCumulativeEnergyReading(int64_t aCumulativeEnergyI
         energyExported.endSystime.SetValue(nowMS);
     }
 
-    EndpointId mid = EPM_dg.mEndpointId;
+    EndpointId mid = EPM_dg.GetEndpointId();
     chip::DeviceLayer::SystemLayer().ScheduleLambda([mid, &energyImported, &energyExported]() {
         // call the SDK to update attributes and generate an event
         if (!NotifyCumulativeEnergyMeasured(mid, MakeOptional(energyImported), MakeOptional(energyExported)))
