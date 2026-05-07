@@ -1265,8 +1265,9 @@ CHIP_ERROR EnergyEvseDelegate::SearchNextChargeTargetAcrossDays(BitMask<EnergyEv
 {
     CHIP_ERROR err = CHIP_NO_ERROR;
     searchDay      = 0;
+    bool done      = false;
 
-    while (searchDay < 2)
+    while (searchDay < 2 && !done)
     {
         PRINTF_DEBUG("Searching for target on %s (searchDay=%u)", GetDayOfWeekStr(dayOfWeekMap), searchDay);
 
@@ -1285,11 +1286,12 @@ CHIP_ERROR EnergyEvseDelegate::SearchNextChargeTargetAcrossDays(BitMask<EnergyEv
         {
             PRINTF_DEBUG("Found target for %s at %u minutes past midnight", GetDayOfWeekStr(dayOfWeekMap),
                          targetTimeMinutesPastMidnight_m);
-            break;
+            done = true;
+            continue;
         }
 
         PRINTF_DEBUG("Error during FindNextTarget: %" CHIP_ERROR_FORMAT, err.Format());
-        break;
+        done = true;
     }
 
     return err;
