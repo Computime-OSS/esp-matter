@@ -107,12 +107,12 @@ void PowerTopologyDelegate::LateSetupAfterMatter()
     PRINTF_DEBUG("Power Source ActiveEndpoints: (%s)", err==ESP_OK?"OK":"Failed");
 }
 
-CHIP_ERROR PowerTopologyInstance::Init()
+CHIP_ERROR PowerTopologyInstance::InitializeCluster()
 {
     return Instance::Init();
 }
 
-void PowerTopologyInstance::Shutdown()
+void PowerTopologyInstance::ShutdownCluster()
 {
     Instance::Shutdown();
 }

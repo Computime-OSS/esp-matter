@@ -62,8 +62,8 @@ public:
     PowerTopologyInstance(const PowerTopologyInstance &&)            = delete;
     PowerTopologyInstance & operator=(const PowerTopologyInstance &) = delete;
 
-    CHIP_ERROR Init();
-    void Shutdown();
+    CHIP_ERROR InitializeCluster();
+    void ShutdownCluster();
 
     PowerTopologyDelegate * GetDelegate() { return mDelegate; };
 

@@ -22,7 +22,7 @@ constexpr uint8_t kAllTargetDaysMask = 0x7f;
 class EvseSession
 {
 public:
-    EvseSession() {}
+    EvseSession() = default;
 
     void SetEndpointId(EndpointId aEndpoint) { mEndpointId = aEndpoint; }
 

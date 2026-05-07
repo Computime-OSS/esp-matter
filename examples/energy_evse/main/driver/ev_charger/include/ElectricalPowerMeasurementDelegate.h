@@ -132,8 +132,8 @@ public:
     ElectricalPowerMeasurementInstance(const ElectricalPowerMeasurementInstance &&)            = delete;
     ElectricalPowerMeasurementInstance & operator=(const ElectricalPowerMeasurementInstance &) = delete;
 
-    CHIP_ERROR Init();
-    void Shutdown();
+    CHIP_ERROR InitializeCluster();
+    void ShutdownCluster();
 
     ElectricalPowerMeasurementDelegate * GetDelegate() { return mDelegate; };
 

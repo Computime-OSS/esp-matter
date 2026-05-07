@@ -35,12 +35,12 @@ using namespace chip::app::Clusters::ElectricalPowerMeasurement::Attributes;
 
 using namespace CT::Charger;
 
-CHIP_ERROR ElectricalPowerMeasurementInstance::Init()
+CHIP_ERROR ElectricalPowerMeasurementInstance::InitializeCluster()
 {
     return Instance::Init();
 }
 
-void ElectricalPowerMeasurementInstance::Shutdown()
+void ElectricalPowerMeasurementInstance::ShutdownCluster()
 {
     Instance::Shutdown();
 }
