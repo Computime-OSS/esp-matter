@@ -109,24 +109,20 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetSerialNumber(char * buf, size_t b
 
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetManufacturingDate(uint16_t & year, uint8_t & month, uint8_t & day)
 {
-    enum
-    {
-        kDateStringLength = 10 // YYYY-MM-DD
-    };
-    char dateStr[kDateStringLength + 1] = "2026-01-23";
+    const std::string dateStr = "2026-01-23";
     char * parseEnd;
 
     // Cast does not lose information, because we then check that we only parsed
     // 4 digits, so our number can't be bigger than 9999.
-    year = static_cast<uint16_t>(strtoul(dateStr, &parseEnd, 10));
+    year = static_cast<uint16_t>(strtoul(dateStr.c_str(), &parseEnd, 10));
 
     // Cast does not lose information, because we then check that we only parsed
     // 2 digits, so our number can't be bigger than 99.
-    month = static_cast<uint8_t>(strtoul(dateStr + 5, &parseEnd, 10));
+    month = static_cast<uint8_t>(strtoul(dateStr.c_str() + 5, &parseEnd, 10));
 
     // Cast does not lose information, because we then check that we only parsed
     // 2 digits, so our number can't be bigger than 99.
-    day = static_cast<uint8_t>(strtoul(dateStr + 8, &parseEnd, 10));
+    day = static_cast<uint8_t>(strtoul(dateStr.c_str() + 8, &parseEnd, 10));
 
     return CHIP_NO_ERROR;
 }
