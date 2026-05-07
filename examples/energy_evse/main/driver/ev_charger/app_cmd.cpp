@@ -180,9 +180,9 @@ static int sw_cmd_handler(int argc, char **argv)
 		else if (!strcasecmp(argv[1], "current"))
 		{
 			uint32_t data1 = 0;
-			if ((argc > 2) && (sscanf(argv[2], "%d", &data1) > 0))
+			if ((argc > 2) && (sscanf(argv[2], "%" SCNu32, &data1) > 0))
 			{
-				PRINTF_DEBUG("set charging current limit to %d mA", data1);
+				PRINTF_DEBUG("set charging current limit to %" PRIu32 " mA", data1);
 				CT::Charger::ChargerManager::Controller().setChargingSessionCurrentLimit(data1);
 			}
 		}
