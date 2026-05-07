@@ -18,11 +18,13 @@
 
 #pragma once
 
+#include <cstdint>
+
+#include <app-common/zap-generated/cluster-enums.h>
+
 namespace chip {
 namespace app {
 namespace Clusters {
-
-using namespace chip::app::Clusters::EnergyEvse;
 
 /* This callbacks mechanism is intended to allow different delegates to
  * dispatch notifications that something has changed.
@@ -74,8 +76,8 @@ struct EVSECbInfo
         /* for type = StateChanged */
         struct
         {
-            StateEnum state;
-            SupplyStateEnum supplyState;
+            EnergyEvse::StateEnum state;
+            EnergyEvse::SupplyStateEnum supplyState;
         } StateChange;
 
         /* for type = ChargeCurrentChanged */

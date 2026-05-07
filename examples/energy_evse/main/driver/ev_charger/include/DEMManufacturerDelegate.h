@@ -32,9 +32,9 @@ namespace DeviceEnergyManagement {
 class DEMManufacturerDelegate
 {
 public:
-    DEMManufacturerDelegate() {}
+    DEMManufacturerDelegate() = default;
 
-    virtual ~DEMManufacturerDelegate() {}
+    virtual ~DEMManufacturerDelegate() = default;
 
     // The PowerAdjustEnd event needs to report the approximate energy used by the ESA during the session.
     virtual int64_t GetApproxEnergyDuringSession() = 0;
