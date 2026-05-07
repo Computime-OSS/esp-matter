@@ -103,11 +103,11 @@ BitMask<EnergyEvse::TargetDayOfWeekBitmap> GetLocalDayOfWeekFromUnixEpoch(time_t
     localtime_r(&unixEpoch, &local_time);
 
     // Get the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-    uint8_t dayOfWeek = static_cast<uint8_t>(local_time.tm_wday);
+    auto dayOfWeek = static_cast<uint8_t>(local_time.tm_wday);
 
     // Calculate the bitmap value based on the day of the week. Note that the value in bitmap
     // maps directly to the definition in EnergyEvse::TargetDayOfWeekBitmap.
-    uint8_t bitmap = static_cast<uint8_t>(1 << dayOfWeek);
+    auto bitmap = static_cast<uint8_t>(1 << dayOfWeek);
 
     return bitmap;
 }
