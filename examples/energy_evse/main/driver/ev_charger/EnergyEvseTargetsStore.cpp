@@ -482,7 +482,7 @@ CHIP_ERROR EvseTargetsDelegate::ClearTargets()
 }
 
 void EvseTargetsDelegate::PrintTargets(
-    const DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> & chargingTargetSchedules)
+    const DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> & chargingTargetSchedules) const
 {
     PRINTF_DEBUG("---------------------- TARGETS ---------------------");
 

@@ -88,7 +88,7 @@ private:
     CHIP_ERROR SaveTargets(DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> & chargingTargetSchedulesList);
 
     // For debug purposes
-    void PrintTargets(const DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> & chargingTargetSchedules);
+    void PrintTargets(const DataModel::List<const Structs::ChargingTargetScheduleStruct::Type> & chargingTargetSchedules) const;
 
 protected:
     enum class TargetEntryTag : uint8_t
