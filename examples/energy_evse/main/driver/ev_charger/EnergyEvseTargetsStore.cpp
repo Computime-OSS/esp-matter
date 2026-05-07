@@ -28,6 +28,7 @@
 #include <lib/support/DefaultStorageKeyAllocator.h>
 #include <lib/support/SafeInt.h>
 #include <array>
+#include <cstddef>
 
 using namespace chip;
 using namespace chip::app;
@@ -313,8 +314,10 @@ CHIP_ERROR EvseTargetsDelegate::SetTargets(
                             currentBitmask);
 
             // Work out if the new schedule dayOfWeekSequence overlaps with any existing schedules
-            auto bitmaskA = static_cast<uint8_t>(currentBitmask & newBitmask);
-            auto bitmaskB = static_cast<uint8_t>(currentBitmask & ~newBitmask);
+            const auto currentBitmaskByte = static_cast<std::byte>(currentBitmask);
+            const auto newBitmaskByte     = static_cast<std::byte>(newBitmask);
+            const auto bitmaskA           = std::to_integer<uint8_t>(currentBitmaskByte & newBitmaskByte);
+            const auto bitmaskB           = std::to_integer<uint8_t>(currentBitmaskByte & ~newBitmaskByte);
 
             BitMask<TargetDayOfWeekBitmap> updatedBitmask;
 
@@ -403,9 +406,9 @@ EvseTargetsDelegate::SaveTargets(DataModel::List<const Structs::ChargingTargetSc
 {
     uint16_t total = GetTlvSizeUpperBound();
 
-    Platform::ScopedMemoryBuffer<uint8_t> backingBuffer;
-    ReturnErrorCodeIf(!backingBuffer.Calloc(total), CHIP_ERROR_NO_MEMORY);
-    TLV::ScopedBufferTLVWriter writer(std::move(backingBuffer), total);
+    Platform::ScopedMemoryBuffer<uint8_t> writerBuffer;
+    ReturnErrorCodeIf(!writerBuffer.Calloc(total), CHIP_ERROR_NO_MEMORY);
+    TLV::ScopedBufferTLVWriter writer(std::move(writerBuffer), total);
 
     TLV::TLVType arrayType;
     ReturnErrorOnFailure(writer.StartContainer(TLV::AnonymousTag(), TLV::kTLVType_Array, arrayType));
@@ -449,14 +452,15 @@ EvseTargetsDelegate::SaveTargets(DataModel::List<const Structs::ChargingTargetSc
     auto len = static_cast<uint64_t>(writer.GetLengthWritten());
     PRINTF_DEBUG("SaveTargets: length written 0x" ChipLogFormatX64, ChipLogValueX64(len));
 
-    writer.Finalize(backingBuffer);
+    Platform::ScopedMemoryBuffer<uint8_t> finalizedBuffer;
+    ReturnErrorOnFailure(writer.Finalize(finalizedBuffer));
 
     if(mpTargetStore == nullptr){
         PRINTF_DEBUG("The target store is not SET!");
         return CHIP_ERROR_PERSISTED_STORAGE_FAILED;
     }
 
-    ReturnErrorOnFailure(mpTargetStore->SyncSetKeyValue(spEvseTargetsKeyName, backingBuffer.Get(), static_cast<uint16_t>(len)));
+    ReturnErrorOnFailure(mpTargetStore->SyncSetKeyValue(spEvseTargetsKeyName, finalizedBuffer.Get(), static_cast<uint16_t>(len)));
 
     return CHIP_NO_ERROR;
 }
