@@ -31,6 +31,9 @@
 #include <ChargingTargetsMemMgr.h>
 
 namespace chip {
+namespace TLV {
+class TLVReader;
+} // namespace TLV
 namespace app {
 namespace Clusters {
 namespace EnergyEvse {
@@ -38,8 +41,8 @@ namespace EnergyEvse {
 class EvseTargetsDelegate : public chip::FabricTable::Delegate
 {
 public:
-    EvseTargetsDelegate();
-    ~EvseTargetsDelegate();
+    EvseTargetsDelegate()           = default;
+    ~EvseTargetsDelegate() override = default;
 
     CHIP_ERROR Init(PersistentStorageDelegate * targetStore);
 
@@ -76,7 +79,7 @@ public:
     /**
      * Part of the FabricTable::Delegate interface. Gets called when a fabric is deleted, such as on FabricTable::Delete().
      **/
-    virtual void OnFabricRemoved(const FabricTable & fabricTable, FabricIndex fabricIndex) override;
+    void OnFabricRemoved(const FabricTable & fabricTable, FabricIndex fabricIndex) override;
 
 private:
     // This is the upper bound in bytes of the TLV storage required to store the chargingTargetSchedulesList
@@ -100,6 +103,9 @@ protected:
     };
 
 private:
+    /** TLV fields inside one ChargingTargetsStruct container (reduces nesting in LoadTargets). */
+    CHIP_ERROR DecodeChargingTargetStructFromTlv(::chip::TLV::TLVReader & reader, Structs::ChargingTargetStruct::Type & outTarget);
+
     // Object to handle the allocation of memory for the chargingTargets
     ChargingTargetsMemMgr mChargingTargets;
 

@@ -24,6 +24,7 @@
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <app-common/zap-generated/cluster-objects.h>
 #include <app/server/Server.h>
+#include <lib/core/TLV.h>
 #include <lib/support/DefaultStorageKeyAllocator.h>
 #include <lib/support/SafeInt.h>
 
@@ -34,9 +35,56 @@ using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::EnergyEvse;
 using chip::Protocols::InteractionModel::Status;
 
-EvseTargetsDelegate::EvseTargetsDelegate() {}
+namespace {
 
-EvseTargetsDelegate::~EvseTargetsDelegate() {}
+template <typename T>
+CHIP_ERROR AllocAndCopyDailyTargetsWithLog(ChargingTargetsMemMgr & mgr, const T & src)
+{
+    CHIP_ERROR const err = mgr.AllocAndCopy(src);
+    if (err != CHIP_NO_ERROR)
+    {
+        PRINTF_DEBUG("SetTargets: Failed to copy the new chargingTargets %s", chip::ErrorStr(err));
+    }
+    return err;
+}
+
+} // namespace
+
+CHIP_ERROR EvseTargetsDelegate::DecodeChargingTargetStructFromTlv(TLV::TLVReader & reader,
+                                                                Structs::ChargingTargetStruct::Type & outTarget)
+{
+    CHIP_ERROR err;
+    while ((err = reader.Next()) == CHIP_NO_ERROR)
+    {
+        TLV::TLVType const type = reader.GetType();
+        TLV::Tag const tag      = reader.GetTag();
+        if (type == TLV::kTLVType_NotSpecified)
+        {
+            return CHIP_ERROR_UNEXPECTED_TLV_ELEMENT;
+        }
+        if (tag == TLV::ContextTag(TargetEntryTag::kTargetTime))
+        {
+            ReturnErrorOnFailure(reader.Get(outTarget.targetTimeMinutesPastMidnight));
+            continue;
+        }
+        if (tag == TLV::ContextTag(TargetEntryTag::kTargetSoC))
+        {
+            chip::Percent tempSoC;
+            ReturnErrorOnFailure(reader.Get(tempSoC));
+            outTarget.targetSoC.SetValue(tempSoC);
+            continue;
+        }
+        if (tag == TLV::ContextTag(TargetEntryTag::kAddedEnergy))
+        {
+            int64_t tempAddedEnergy;
+            ReturnErrorOnFailure(reader.Get(tempAddedEnergy));
+            outTarget.addedEnergy.SetValue(tempAddedEnergy);
+            continue;
+        }
+        return CHIP_ERROR_UNEXPECTED_TLV_ELEMENT;
+    }
+    return err;
+}
 
 CHIP_ERROR EvseTargetsDelegate::Init(PersistentStorageDelegate * targetStore)
 {
@@ -137,38 +185,7 @@ CHIP_ERROR EvseTargetsDelegate::LoadTargets()
             // Keep track of the current chargingTarget being loaded
             EnergyEvse::Structs::ChargingTargetStruct::Type chargingTarget;
 
-            while ((err = reader.Next()) == CHIP_NO_ERROR)
-            {
-                auto type = reader.GetType();
-                auto tag  = reader.GetTag();
-                if (type == TLV::kTLVType_NotSpecified)
-                {
-                    // Something wrong - we've lost alignment
-                    return CHIP_ERROR_UNEXPECTED_TLV_ELEMENT;
-                }
-
-                if (tag == TLV::ContextTag(TargetEntryTag::kTargetTime))
-                {
-                    ReturnErrorOnFailure(reader.Get(chargingTarget.targetTimeMinutesPastMidnight));
-                }
-                else if (tag == TLV::ContextTag(TargetEntryTag::kTargetSoC))
-                {
-                    chip::Percent tempSoC;
-                    ReturnErrorOnFailure(reader.Get(tempSoC));
-                    chargingTarget.targetSoC.SetValue(tempSoC);
-                }
-                else if (tag == TLV::ContextTag(TargetEntryTag::kAddedEnergy))
-                {
-                    int64_t tempAddedEnergy;
-                    ReturnErrorOnFailure(reader.Get(tempAddedEnergy));
-                    chargingTarget.addedEnergy.SetValue(tempAddedEnergy);
-                }
-                else
-                {
-                    // Something else unexpected here
-                    return CHIP_ERROR_UNEXPECTED_TLV_ELEMENT;
-                }
-            }
+            ReturnErrorOnFailure(DecodeChargingTargetStructFromTlv(reader, chargingTarget));
 
             ReturnErrorOnFailure(reader.ExitContainer(chargingTargetsStructType));
 
@@ -306,12 +323,8 @@ CHIP_ERROR EvseTargetsDelegate::SetTargets(
                 updatedBitmask = BitMask<TargetDayOfWeekBitmap>(bitmaskA);
 
                 // Copy the new chargingTargets to this schedule index
-                CHIP_ERROR err = updatedChargingTargets.AllocAndCopy(newChargingTargetSchedule.chargingTargets);
-                if (err != CHIP_NO_ERROR)
-                {
-                    PRINTF_DEBUG("SetTargets: Failed to copy the new chargingTargets %s", chip::ErrorStr(err));
-                    return err;
-                }
+                ReturnErrorOnFailure(
+                    AllocAndCopyDailyTargetsWithLog(updatedChargingTargets, newChargingTargetSchedule.chargingTargets));
 
                 found = true;
             }
@@ -321,12 +334,8 @@ CHIP_ERROR EvseTargetsDelegate::SetTargets(
                 updatedBitmask = BitMask<TargetDayOfWeekBitmap>(bitmaskB);
 
                 // Copy the existing chargingTargets
-                CHIP_ERROR err = updatedChargingTargets.AllocAndCopy(currentChargingTargetSchedule.chargingTargets);
-                if (err != CHIP_NO_ERROR)
-                {
-                    PRINTF_DEBUG("SetTargets: Failed to copy the new chargingTargets %s", chip::ErrorStr(err));
-                    return err;
-                }
+                ReturnErrorOnFailure(
+                    AllocAndCopyDailyTargetsWithLog(updatedChargingTargets, currentChargingTargetSchedule.chargingTargets));
             }
 
             // Update the new schedule with the dayOfWeekForSequence and list of chargingTargets
@@ -347,12 +356,8 @@ CHIP_ERROR EvseTargetsDelegate::SetTargets(
         if (!found)
         {
             // Copy the new chargingTargets
-            CHIP_ERROR err = updatedChargingTargets.AllocAndCopy(newChargingTargetSchedule.chargingTargets);
-            if (err != CHIP_NO_ERROR)
-            {
-                PRINTF_DEBUG("SetTargets: Failed to copy the new chargingTargets %s", chip::ErrorStr(err));
-                return err;
-            }
+            ReturnErrorOnFailure(
+                AllocAndCopyDailyTargetsWithLog(updatedChargingTargets, newChargingTargetSchedule.chargingTargets));
 
             // Update the new schedule with the dayOfWeekForSequence and list of chargingTargets
             updatedChargingTargetSchedulesArray[updatedChargingTargetSchedulesIdx].dayOfWeekForSequence =
@@ -504,4 +509,10 @@ void EvseTargetsDelegate::PrintTargets(
 /**
  * Part of the FabricTable::Delegate interface. Gets called when a fabric is deleted, such as on FabricTable::Delete().
  **/
-void EvseTargetsDelegate::OnFabricRemoved(const FabricTable & fabricTable, FabricIndex fabricIndex) {}
+void EvseTargetsDelegate::OnFabricRemoved(const FabricTable &, FabricIndex)
+{
+    /*
+     * Intentionally empty: EVSE charging targets are persisted under a single device key and are not
+     * tied to a fabric index in this implementation, so fabric removal does not require clearing them.
+     */
+}
