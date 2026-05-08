@@ -11,5 +11,10 @@ out/
 _build/
 tools/chip-tool/
 .zap/
-.DS_Store
-.vscode/
+
+# SonarCloud / SonarQube
+bw-output/
+.sonar_cache/
+.scannerwork/
+cppcheck.xml
+cppcheck-issues.json
