@@ -1,18 +1,35 @@
 name: SonarCloud Analysis
 
 # Triggers:
-#   - push to release/v1.4         -> establishes the baseline
-#   - push to evse-simulator-v1.4  -> persistent feature-branch dashboard
-#   - pull_request to release/v*   -> incremental ("new code") diff analysis
-#   - workflow_dispatch            -> manual run from the Actions tab
+#   - push to release/v1.4-7b6cf277 -> rescans the FROZEN baseline (rare).
+#                                       This branch is the diff target for the
+#                                       long-lived draft PR below; its tip
+#                                       must already be analyzed on SonarCloud
+#                                       so PR decoration can resolve the base.
+#   - push to release/v1.4          -> independent long-lived branch scan.
+#   - pull_request to release/v1.4* -> incremental "new code" diff analysis.
+#                                       In particular, a long-lived DRAFT PR
+#                                       evse-simulator-v1.4 -> release/v1.4-7b6cf277
+#                                       gives a stable fork-point diff vs.
+#                                       commit 7b6cf277 (git merge-base of the
+#                                       two branches) without requiring the
+#                                       SonarCloud Enterprise per-branch
+#                                       "Specific analysis" feature. Each push
+#                                       to evse-simulator-v1.4 fires a
+#                                       pull_request:synchronize event, so
+#                                       evse-simulator-v1.4 itself does NOT
+#                                       need to be in the push: list.
+#   - workflow_dispatch             -> manual run from the Actions tab.
 on:
   push:
     branches:
       - 'release/v1.4'
+      - 'release/v1.4-7b6cf277'
       - 'evse-simulator-v1.4'
   pull_request:
     branches:
       - 'release/v1.4'
+      - 'release/v1.4-7b6cf277'
   workflow_dispatch:
 
 jobs:
@@ -21,7 +38,6 @@ jobs:
     container:
       # Custom image with chip pre-bootstrapped under /opt/espressif/esp-matter
       # and fork patches applied. Built via `docker commit` from the steps
-      # documented in scripts/build_sonar_image.md. Bump this tag whenever
       # the connectedhomeip submodule SHA or the patches/ contents change.
       image: ghcr.io/computime-oss/esp-matter-sonar:evse-v1.4
       credentials:
@@ -41,6 +57,7 @@ jobs:
 
       - name: Fetch reference branches for accurate diff
         run: |
+          git fetch --no-tags origin release/v1.4-7b6cf277:refs/remotes/origin/release/v1.4-7b6cf277 || true
           git fetch --no-tags origin release/v1.4:refs/remotes/origin/release/v1.4 || true
           git fetch --no-tags origin evse-simulator-v1.4:refs/remotes/origin/evse-simulator-v1.4 || true
 
@@ -118,10 +135,14 @@ jobs:
         run: |
           set -e
           if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Real GitHub PR: incremental diff vs the PR base branch.
+            # The long-lived draft PR evse-simulator-v1.4 -> release/v1.4-7b6cf277
+            # is what gives us a stable fork-point diff (merge-base = 7b6cf277).
             sonar-scanner \
               -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
               -Dsonar.pullrequest.branch=${{ github.head_ref }} \
               -Dsonar.pullrequest.base=${{ github.base_ref }}
           else
+            # Long-lived branch scan (release/v1.4, release/v1.4-7b6cf277).
             sonar-scanner -Dsonar.branch.name=${{ github.ref_name }}
           fi
