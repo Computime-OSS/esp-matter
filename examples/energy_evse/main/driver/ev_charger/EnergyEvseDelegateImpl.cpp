@@ -1603,8 +1603,15 @@ void EnergyEvseDelegate::OnEvseEnableTimerExpired()
     ScheduleCheckOnEnabledTimeout();
 }
 
-void EnergyEvseDelegate::EvseCheckTimerExpiry([[maybe_unused]]System::Layer * systemLayer, void * appState)
+void EnergyEvseDelegate::EvseCheckTimerExpiry([[maybe_unused]]System::Layer * systemLayer, void * callbackContext)
 {
-    // TimerCompleteCallback passes appState registered with StartTimer (we pass `this`).
-    static_cast<EnergyEvseDelegate *>(appState)->OnEvseEnableTimerExpired();
+    // TimerCompleteCallback passes the context registered with StartTimer (we pass `this`).
+    if (callbackContext == nullptr)
+    {
+        ChipLogError(AppServer, "EVSE timer callback context is null");
+        return;
+    }
+
+    auto * delegate = static_cast<EnergyEvseDelegate *>(callbackContext);
+    delegate->OnEvseEnableTimerExpired();
 }

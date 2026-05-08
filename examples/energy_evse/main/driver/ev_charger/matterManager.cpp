@@ -165,16 +165,16 @@ static void RestoreAndPrintTime()
 }
 
 static esp_err_t app_identification_cb(identification::callback_type_t type, uint16_t endpoint_id, uint8_t effect_id,
-                                       uint8_t effect_variant, EspMatterCallbackOpaquePtr espMatterCallbackOpaquePrivData)
+                                       uint8_t effect_variant, EspMatterCallbackOpaquePtr callbackContext)
 {
-    (void)espMatterCallbackOpaquePrivData;
+    (void)callbackContext;
     PRINTF_DEBUG("Identification callback: type: %d, effect: %d", type, effect_id);
     return ESP_OK;
 }
 
 static esp_err_t app_attribute_update_cb(attribute::callback_type_t type, uint16_t endpoint_id, uint32_t cluster_id,
                                          uint32_t attribute_id, esp_matter_attr_val_t * val,
-                                         EspMatterCallbackOpaquePtr espMatterCallbackOpaquePrivData)
+                                         EspMatterCallbackOpaquePtr callbackContext)
 {
     esp_err_t err = ESP_OK;
     PRINTF_DEBUG("Received attribute update type: %s (0x%0X 0x%0X 0x%0X)", 
@@ -189,7 +189,7 @@ static esp_err_t app_attribute_update_cb(attribute::callback_type_t type, uint16
         /* Driver update */
         MatterManager::GetInstance().HandleMatterAttributeUpdate(endpoint_id, cluster_id, attribute_id, val);
     }
-    (void) espMatterCallbackOpaquePrivData;
+    (void) callbackContext;
     return err;
 }
 

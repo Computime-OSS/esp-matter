@@ -27,9 +27,16 @@ uint32_t fakeCurrentBaseOnTarget(uint32_t targetCurrent_mA)
 
 } // namespace
 
-void HardwareControlInterface::meterTimerCallback(void *hardwareControlIfaceOpaque)
+void HardwareControlInterface::meterTimerCallback(void * callbackContext)
 {
-    invokeMeterTimerOnInterface(static_cast<HardwareControlInterface *>(hardwareControlIfaceOpaque));
+    if (callbackContext == nullptr)
+    {
+        ESP_LOGE(TAG, "meterTimerCallback received null callback context");
+        return;
+    }
+
+    auto * interface = static_cast<HardwareControlInterface *>(callbackContext);
+    invokeMeterTimerOnInterface(interface);
 }
 
 void HardwareControlInterface::invokeMeterTimerOnInterface(HardwareControlInterface *hardwareControlIface)

@@ -203,7 +203,7 @@ public:
      * CHIP SystemLayer timer callback; @p appState is the delegate (`this`) passed to StartTimer.
      * Signature matches chip::System::TimerCompleteCallback (second parameter is opaque user context).
      */
-    static void EvseCheckTimerExpiry(System::Layer * systemLayer, void * appState);
+    static void EvseCheckTimerExpiry(System::Layer * systemLayer, void * callbackContext);
 
     static void ApplicationCallbackHandler(const EVSECbInfo * cb, intptr_t arg);
 
