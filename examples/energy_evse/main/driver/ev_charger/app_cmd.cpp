@@ -48,7 +48,7 @@ static void hw_exec_cable(int argc, char ** argv)
     {
         return;
     }
-    bool const connected = strtol(argv[2], nullptr, 10) != 0;
+    auto const connected = strtol(argv[2], nullptr, 10) != 0;
     CT::Charger::HardwareControlInterface::Instance().setCableStatus(
         connected ? CT::Charger::HwCableStatus_t::CONNECTED : CT::Charger::HwCableStatus_t::NOT_CONNECTED);
 }
@@ -59,7 +59,7 @@ static void hw_exec_limit(int argc, char ** argv)
     {
         return;
     }
-    int64_t const limit = strtoll(argv[2], nullptr, 10);
+    auto const limit = strtoll(argv[2], nullptr, 10);
     CT::Charger::ChargerManager::Controller().setChargingSessionCurrentLimit(static_cast<int>(limit));
     DEBUG_CHECKPOINT("emulator: charge limit set to %" PRId64 " mA", static_cast<int64_t>(limit));
 }
@@ -70,7 +70,7 @@ static void hw_exec_ev(int argc, char ** argv)
     {
         return;
     }
-    bool const isDrawing = strtol(argv[2], nullptr, 10) != 0;
+    auto const isDrawing = strtol(argv[2], nullptr, 10) != 0;
     CT::Charger::HardwareControlInterface::Instance().setEVDrawing(isDrawing);
     DEBUG_CHECKPOINT("emulator: set EV drawing to %s", isDrawing ? "true" : "false");
 }
@@ -81,7 +81,7 @@ static void hw_exec_fault(int argc, char ** argv)
     {
         return;
     }
-    uint8_t const faultCode = static_cast<uint8_t>(strtoul(argv[2], nullptr, 10));
+    auto const faultCode = static_cast<uint8_t>(strtoul(argv[2], nullptr, 10));
     CT::Charger::HardwareControlInterface::Instance().setFaultCode(faultCode);
     DEBUG_CHECKPOINT("emulator: set fault code to %" PRIu8, faultCode);
 }
