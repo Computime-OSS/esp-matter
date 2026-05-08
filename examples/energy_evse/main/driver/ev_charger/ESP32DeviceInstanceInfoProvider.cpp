@@ -23,7 +23,7 @@ namespace DeviceLayer {
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetVendorName(char * buf, size_t bufSize)
 {
     ReturnErrorCodeIf(bufSize < sizeof(kDeviceVendorName), CHIP_ERROR_BUFFER_TOO_SMALL);
-    strcpy(buf, kDeviceVendorName);
+    Platform::CopyString(buf, bufSize, kDeviceVendorName);
     return CHIP_NO_ERROR;
 }
 
@@ -36,7 +36,7 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetVendorId(uint16_t & vendorId)
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetProductName(char * buf, size_t bufSize)
 {
     ReturnErrorCodeIf(bufSize < sizeof(kDeviceProductName), CHIP_ERROR_BUFFER_TOO_SMALL);
-    strcpy(buf, kDeviceProductName);
+    Platform::CopyString(buf, bufSize, kDeviceProductName);
 
     return CHIP_NO_ERROR;
 }
@@ -135,7 +135,7 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetHardwareVersion(uint16_t & hardwa
 CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetHardwareVersionString(char * buf, size_t bufSize)
 {
     ReturnErrorCodeIf(bufSize < sizeof(kDeviceHardwareVersionString), CHIP_ERROR_BUFFER_TOO_SMALL);
-    strcpy(buf, kDeviceHardwareVersionString);
+    Platform::CopyString(buf, bufSize, kDeviceHardwareVersionString);
     return CHIP_NO_ERROR;
 }
 
