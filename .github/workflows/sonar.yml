@@ -1,0 +1,204 @@
+name: SonarCloud Analysis
+
+# Triggers:
+#   - push to release/v1.4-7b6cf277 -> rescans the FROZEN baseline (rare).
+#                                       This branch is the diff target for the
+#                                       long-lived draft PR below; its tip
+#                                       must already be analyzed on SonarCloud
+#                                       so PR decoration can resolve the base.
+#   - push to release/v1.4          -> independent long-lived branch scan.
+#   - pull_request to release/v1.4* -> incremental "new code" diff analysis.
+#                                       In particular, a long-lived DRAFT PR
+#                                       evse-simulator-v1.4 -> release/v1.4-7b6cf277
+#                                       gives a stable fork-point diff vs.
+#                                       commit 7b6cf277 (git merge-base of the
+#                                       two branches) without requiring the
+#                                       SonarCloud Enterprise per-branch
+#                                       "Specific analysis" feature. Each push
+#                                       to evse-simulator-v1.4 fires a
+#                                       pull_request:synchronize event, so
+#                                       evse-simulator-v1.4 itself does NOT
+#                                       need to be in the push: list.
+#   - workflow_dispatch             -> manual run from the Actions tab.
+on:
+  push:
+    branches:
+      - 'release/v1.4'
+      - 'release/v1.4-7b6cf277'
+      - 'evse-simulator-v1.4'
+  pull_request:
+    branches:
+      - 'release/v1.4'
+      - 'release/v1.4-7b6cf277'
+  workflow_dispatch:
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+    container:
+      # Custom image with chip pre-bootstrapped under /opt/espressif/esp-matter
+      # and fork patches applied. Built via `docker commit` from the steps
+      # the connectedhomeip submodule SHA or the patches/ contents change.
+      image: ghcr.io/computime-oss/esp-matter-sonar:evse-v1.4
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout (full history required for Sonar blame and PR diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Mark workspace as a safe git directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Fetch reference branches for accurate diff
+        run: |
+          git fetch --no-tags origin release/v1.4-7b6cf277:refs/remotes/origin/release/v1.4-7b6cf277 || true
+          git fetch --no-tags origin release/v1.4:refs/remotes/origin/release/v1.4 || true
+          git fetch --no-tags origin evse-simulator-v1.4:refs/remotes/origin/evse-simulator-v1.4 || true
+
+      - name: Install build-wrapper
+        run: |
+          set -e
+          curl -sSLo /tmp/bw.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip -q /tmp/bw.zip -d /opt
+          echo "/opt/build-wrapper-linux-x86" >> "$GITHUB_PATH"
+
+      - name: Install sonar-scanner CLI
+        run: |
+          set -e
+          curl -sSLo /tmp/scanner.zip \
+            https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip -q /tmp/scanner.zip -d /opt
+          echo "/opt/sonar-scanner-5.0.1.3006-linux/bin" >> "$GITHUB_PATH"
+
+      - name: Build example under build-wrapper
+        shell: bash
+        run: |
+          set -e
+
+          # The custom image has chip pre-bootstrapped at /opt/espressif/esp-matter.
+          # GitHub Actions overlays a fresh volume on $GITHUB_WORKSPACE, so the
+          # only way to expose the bootstrapped .environment/ + submodules to the
+          # build is to symlink the workspace's connectedhomeip dir to the image
+          # copy. The pigweed venv has absolute paths baked in pointing at /opt,
+          # which still resolve inside the container.
+          IMAGE_CHIP=/opt/espressif/esp-matter/connectedhomeip/connectedhomeip
+          if [ ! -d "$IMAGE_CHIP/.environment" ]; then
+            echo "ERROR: image is missing pre-bootstrapped chip at $IMAGE_CHIP" >&2
+            exit 1
+          fi
+          rm -rf "$GITHUB_WORKSPACE/connectedhomeip/connectedhomeip"
+          mkdir -p "$GITHUB_WORKSPACE/connectedhomeip"
+          ln -s "$IMAGE_CHIP" "$GITHUB_WORKSPACE/connectedhomeip/connectedhomeip"
+
+          export ESP_MATTER_PATH="$GITHUB_WORKSPACE"
+          . "$IDF_PATH/export.sh"
+          . "$ESP_MATTER_PATH/export.sh"
+
+          # esp-matter/export.sh only updates PATH; it does NOT activate chip's
+          # pigweed env. Source chip's activate.sh so _PW_ACTUAL_ENVIRONMENT_ROOT
+          # and friends are exported (gn imports pigweed_environment.gni via
+          # this var; without it the build fails with "Unable to load
+          # /build_overrides/pigweed_environment.gni").
+          # Activate from /opt so pigweed's absolute paths resolve correctly.
+          . /opt/espressif/esp-matter/connectedhomeip/connectedhomeip/scripts/activate.sh
+
+          if [ -d "$ESP_MATTER_PATH/examples/energy_evse" ]; then
+            EXAMPLE_NAME="energy_evse"
+            TARGET="esp32s3"
+          elif [ -d "$ESP_MATTER_PATH/examples/light" ]; then
+            EXAMPLE_NAME="light"
+            TARGET="esp32c3"
+          else
+            echo "ERROR: neither examples/energy_evse nor examples/light exists" >&2
+            exit 1
+          fi
+
+          cd "$ESP_MATTER_PATH/examples/$EXAMPLE_NAME"
+          # idf.py in this image rejects -D flags on `set-target`; pass the
+          # CMake policy override via env var so every CMake invocation picks it up.
+          export CMAKE_POLICY_VERSION_MINIMUM=3.5
+          idf.py set-target "$TARGET"
+          build-wrapper-linux-x86-64 \
+            --out-dir "$GITHUB_WORKSPACE/bw-output" \
+            idf.py build
+
+      - name: Host unit tests + coverage (energy_evse/test/host_test)
+        # Mirrors generate_unit_tests_coverage.sh, but uses the Linux gcov
+        # that ships with the image (the dev script uses 'xcrun llvm-cov gcov'
+        # which is macOS-only) and writes the coverage XML at a stable name
+        # (sonar-coverage.xml) instead of date-stamped, so the path in
+        # sonar-project.properties stays constant. gcovr's --sonarqube format
+        # is Sonar's generic coverage XML, consumed via sonar.coverageReportPaths
+        # below.
+        #
+        # Only runs on branches/PRs where this harness exists. Coverage is
+        # bounded to the .cpp files listed in host_test/CMakeLists.txt
+        # (currently calculate_energy.cpp + get_readable_time.cpp) — the rest
+        # of main/ depends on ESP-IDF / Matter symbols and cannot be host-
+        # built. See sonar.coverage.inclusions in sonar-project.properties.
+        shell: bash
+        if: ${{ hashFiles('examples/energy_evse/test/host_test/CMakeLists.txt') != '' }}
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE/examples/energy_evse/test/host_test"
+
+          # gcovr is not in the base image. Install into an isolated venv so
+          # we don't trip the PEP 668 "externally managed" guard on the
+          # image's system Python.
+          if ! command -v gcovr >/dev/null 2>&1; then
+            python3 -m venv "$GITHUB_WORKSPACE/.venv-gcovr"
+            # shellcheck source=/dev/null
+            . "$GITHUB_WORKSPACE/.venv-gcovr/bin/activate"
+            python -m pip install --upgrade --no-cache-dir pip
+            python -m pip install --no-cache-dir 'gcovr>=6.0,<8'
+          fi
+
+          rm -rf build
+          mkdir build
+          cd build
+
+          cmake .. -DCMAKE_BUILD_TYPE=Debug
+          make -j"$(nproc)"
+
+          # Run the unit-test binary. Don't fail the workflow on red tests
+          # — SonarCloud should still ingest the coverage report so the
+          # dashboard shows what was exercised. Remove `|| ...` if you want
+          # red tests to fail CI.
+          ./run_tests || echo "::warning::host unit tests reported failures — see SonarCloud dashboard"
+
+          # Sonar generic coverage XML (NOT Cobertura). -r points at the
+          # repo root so paths in the XML resolve under sonar.projectBaseDir.
+          # Use the image's plain gcov (no xcrun on Linux).
+          gcovr . \
+            --sonarqube "$GITHUB_WORKSPACE/sonar-coverage.xml" \
+            -r "$GITHUB_WORKSPACE" \
+            --gcov-executable gcov
+
+          ls -l "$GITHUB_WORKSPACE/sonar-coverage.xml"
+          echo "--- sonar-coverage.xml: first <file ...> entries ---"
+          grep -m5 '<file ' "$GITHUB_WORKSPACE/sonar-coverage.xml" || true
+
+      - name: SonarCloud scan
+        shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Real GitHub PR: incremental diff vs the PR base branch.
+            # The long-lived draft PR evse-simulator-v1.4 -> release/v1.4-7b6cf277
+            # is what gives us a stable fork-point diff (merge-base = 7b6cf277).
+            sonar-scanner \
+              -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+              -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+              -Dsonar.pullrequest.base=${{ github.base_ref }}
+          else
+            # Long-lived branch scan (release/v1.4, release/v1.4-7b6cf277).
+            sonar-scanner -Dsonar.branch.name=${{ github.ref_name }}
+          fi
