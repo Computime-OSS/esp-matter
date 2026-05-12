@@ -11,6 +11,10 @@ out/
 _build/
 tools/chip-tool/
 .zap/
+.vscode/
+
+# Cursor
+.cursor/
 
 # SonarCloud / SonarQube
 bw-output/
