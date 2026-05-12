@@ -15,15 +15,22 @@ The host executable accepts a suite name::
 
 Verbose logs: set ``CT_HOST_UNIT_TEST_VERBOSE=1`` and use ``pytest -rP`` or ``-s`` as before.
 
-**Coverage (gcov / HTML) vs. ``../main``**
+**Coverage from pytest**
 
-- Run ``scripts/run_host_coverage.sh`` from ``test_main_app/``. It builds with ``-DCT_HOST_COVERAGE=ON``,
-  runs ``host_unit_test_runner all``, then optional ``lcov``/``genhtml``.
-- Reports line coverage only for translation units **linked into that host binary** — today that is
-  ``../main/driver/ev_charger/get_readable_time.cpp``, ``matter_schedule_allow.cpp``, and the
-  harness under ``test_main_app/src/``. Other ``main/`` files (Matter, ESP-IDF, etc.) are **not**
-  in this target, so they do not appear until you add them to ``CMakeLists.txt`` and execute them
-  from the runner.
+- **Python** (``tests/*.py``): use **pytest-cov**, e.g. ``--cov=tests --cov-report=xml:coverage-python.xml``.
+- **C++** linked from ``../main``: ``pytest-cov`` does not instrument C++. Use **``--host-cpp-cov-xml=FILE``**
+  (requires **gcovr** on PATH). After the session, a separate gcov build runs and writes **Cobertura** XML
+  (same family of report many CI tools consume as ``coverage.xml``).
+  Only ``.cpp`` files listed in ``test_main_app/CMakeLists.txt`` under ``../main/`` appear there until you add more.
+
+Example (JUnit + both XML reports)::
+
+    pytest tests \\
+      --junitxml=pytest-report.xml \\
+      --cov=tests --cov-report=xml:coverage-python.xml \\
+      --host-cpp-cov-xml=coverage-cpp.xml
+
+Shell-only C++ HTML remains: ``scripts/run_host_coverage.sh``.
 """
 
 from __future__ import annotations

@@ -1,3 +1,9 @@
 # Dependency: pytest
 # License: MIT (safe)
 pytest>=8.0,<10
+# Dependency: pytest-cov — Python coverage for pytest (optional; use --cov=tests).
+# License: MIT (safe)
+pytest-cov>=4.0,<8
+# Dependency: gcovr — Cobertura XML from gcov for C++ linked from ../main (use --host-cpp-cov-xml=...).
+# License: BSD-3-Clause (safe)
+gcovr>=6.0,<8
