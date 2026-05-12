@@ -1,1 +1,4 @@
 build_host_pytest/
+build_host_coverage/
+.DS_Store
+.coverage

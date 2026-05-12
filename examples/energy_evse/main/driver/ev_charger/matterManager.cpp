@@ -28,6 +28,7 @@
 #include "EnergyEvseDelegateImpl.h"
 
 #include "matterManager.h"
+#include "matter_schedule_allow.h"
 
 using namespace chip;
 using namespace chip::app;
@@ -509,33 +510,28 @@ bool MatterManager::IsChargingAllowedByTargets(void)
         PRINTF_DEBUG("No charging schedule set (Null). Defaulting to ALLOW.");
         allowed = true; 
     }
-    else 
+    else
     {
-        //convert it back before comparing the current time
-        time_t tStart = static_cast<time_t>(nextStart.Value() + chip::kChipEpochSecondsSinceUnixEpoch);
-        time_t tTarget = static_cast<time_t>(targetTime.Value() + chip::kChipEpochSecondsSinceUnixEpoch);
-        
-        // 2. Too early logic
-        if (now < tStart)
+        // convert Matter epoch seconds to Unix before comparing (logic in matter_schedule_allow.cpp for host tests)
+        time_t tStart    = static_cast<time_t>(nextStart.Value() + chip::kChipEpochSecondsSinceUnixEpoch);
+        time_t tTarget   = static_cast<time_t>(targetTime.Value() + chip::kChipEpochSecondsSinceUnixEpoch);
+        allowed          = MatterScheduleIsChargingAllowedAtUnix(now, tStart, tTarget);
+        if (!allowed && now < tStart)
         {
             PRINTF_DEBUG("Charging NOT allowed. Current time is BEFORE start time.");
-            allowed = false;
         }
-        
-        // 3. Too late logic
-        if (now >= tTarget)
+        else if (!allowed && now >= tTarget)
         {
             PRINTF_DEBUG("Charging NOT allowed. Current time has PASSED target time.");
-            allowed = false;
         }
 
-    #if 0
+#if 0
         char nowStr[20], startStr[20], targetStr[20];
         strftime(nowStr, sizeof(nowStr), "%Y-%m-%d %H:%M:%S", localtime(&now));
         strftime(startStr, sizeof(startStr), "%Y-%m-%d %H:%M:%S", localtime(&tStart));
         strftime(targetStr, sizeof(targetStr), "%Y-%m-%d %H:%M:%S", localtime(&tTarget));
         PRINTF_DEBUG("Checking Schedule - Now: [%s], Start: [%s], Target: [%s]", nowStr, startStr, targetStr);
-    #endif
+#endif
     }
 
     return allowed;
