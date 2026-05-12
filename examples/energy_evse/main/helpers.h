@@ -9,6 +9,8 @@
 #include <common_macros.h>
 #include "soc/io_mux_reg.h"
 
+#include "get_readable_time.h"
+
 namespace CT {
 namespace Charger {
 
@@ -38,8 +40,6 @@ enum class AuthType_t
 
 } // namespace Charger
 } // namespace CT
-
-#include "get_readable_time.h"
 
 #define ENABLE_CT_LOG
 
