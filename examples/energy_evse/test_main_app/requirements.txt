@@ -1,0 +1,3 @@
+# Dependency: pytest
+# License: MIT (safe)
+pytest>=8.0,<10

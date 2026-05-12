@@ -39,7 +39,7 @@ enum class AuthType_t
 } // namespace Charger
 } // namespace CT
 
-void GetReadableTime(uint32_t matterEpoch_s, char * outStr, size_t outSize);
+#include "get_readable_time.h"
 
 #define ENABLE_CT_LOG
 

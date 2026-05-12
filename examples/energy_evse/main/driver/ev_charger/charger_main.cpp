@@ -9,25 +9,6 @@
 #include "charger_main.h"
 #include "hardwareControlInterface.h"
 
-void GetReadableTime(uint32_t matterEpoch_s, char * outStr, size_t outSize)
-{
-    if (matterEpoch_s == 0)
-    {
-        snprintf(outStr, outSize, "NOT SET");
-        return;
-    }
-
-    // Convert Matter Epoch (starts 2000) to Unix Epoch (starts 1970)
-    // 946684800 is the offset defined in the Matter Specification
-    time_t unixTime = static_cast<time_t>(matterEpoch_s + chip::kChipEpochSecondsSinceUnixEpoch);
-    
-    struct tm timeInfo;
-    localtime_r(&unixTime, &timeInfo);
-    
-    // Format: MM/DD HH:MM
-    strftime(outStr, outSize, "%d/%m/%Y %H:%M", &timeInfo);
-}
-
 namespace CT {
 namespace Charger {
 
