@@ -128,6 +128,38 @@ jobs:
             --out-dir "$GITHUB_WORKSPACE/bw-output" \
             idf.py build
 
+      - name: Host unit tests + coverage (energy_evse/test_main_app)
+        # Only runs on evse-simulator-v1.4 (and PRs targeting that line) where
+        # the test harness exists. The same pytest invocation drives a host
+        # CMake build of host_unit_test_runner under build_host_pytest_cov/,
+        # then runs gcovr to emit a Cobertura XML for the C++ sources linked
+        # from ../main. Outputs (all three consumed by SonarCloud below):
+        #   examples/energy_evse/test_main_app/pytest-report.xml   (JUnit)
+        #   examples/energy_evse/test_main_app/coverage-python.xml (Cobertura, Python)
+        #   examples/energy_evse/test_main_app/coverage-cpp.xml    (Cobertura, C++ via gcovr)
+        shell: bash
+        if: ${{ hashFiles('examples/energy_evse/test_main_app/pytest.ini') != '' }}
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE/examples/energy_evse/test_main_app"
+
+          # Install host test deps into the image's Python env (pytest, pytest-cov, gcovr).
+          python3 -m pip install --no-cache-dir -r requirements.txt
+
+          # Build/run host tests + emit all three XML reports.
+          # --tb=short matches pytest.ini; do not fail the workflow on test
+          # failures — we still want SonarCloud to ingest the JUnit report so
+          # failures show up on the dashboard. Remove `|| true` if you want
+          # red tests to fail CI.
+          export TZ=UTC
+          pytest tests \
+            --junitxml=pytest-report.xml \
+            --cov=tests --cov-report=xml:coverage-python.xml \
+            --host-cpp-cov-xml=coverage-cpp.xml \
+            || echo "::warning::host unit tests reported failures — see SonarCloud Pull Request 'Issues' / 'Measures' tabs"
+
+          ls -l pytest-report.xml coverage-python.xml coverage-cpp.xml
+
       - name: SonarCloud scan
         shell: bash
         env:
