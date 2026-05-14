@@ -128,6 +128,62 @@ jobs:
             --out-dir "$GITHUB_WORKSPACE/bw-output" \
             idf.py build
 
+      - name: Host unit tests + coverage (energy_evse/test/host_test)
+        # Mirrors generate_unit_tests_coverage.sh, but uses the Linux gcov
+        # that ships with the image (the dev script uses 'xcrun llvm-cov gcov'
+        # which is macOS-only) and writes the coverage XML at a stable name
+        # (sonar-coverage.xml) instead of date-stamped, so the path in
+        # sonar-project.properties stays constant. gcovr's --sonarqube format
+        # is Sonar's generic coverage XML, consumed via sonar.coverageReportPaths
+        # below.
+        #
+        # Only runs on branches/PRs where this harness exists. Coverage is
+        # bounded to the .cpp files listed in host_test/CMakeLists.txt
+        # (currently calculate_energy.cpp + get_readable_time.cpp) — the rest
+        # of main/ depends on ESP-IDF / Matter symbols and cannot be host-
+        # built. See sonar.coverage.inclusions in sonar-project.properties.
+        shell: bash
+        if: ${{ hashFiles('examples/energy_evse/test/host_test/CMakeLists.txt') != '' }}
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE/examples/energy_evse/test/host_test"
+
+          # gcovr is not in the base image. Install into an isolated venv so
+          # we don't trip the PEP 668 "externally managed" guard on the
+          # image's system Python.
+          if ! command -v gcovr >/dev/null 2>&1; then
+            python3 -m venv "$GITHUB_WORKSPACE/.venv-gcovr"
+            # shellcheck source=/dev/null
+            . "$GITHUB_WORKSPACE/.venv-gcovr/bin/activate"
+            python -m pip install --upgrade --no-cache-dir pip
+            python -m pip install --no-cache-dir 'gcovr>=6.0,<8'
+          fi
+
+          rm -rf build
+          mkdir build
+          cd build
+
+          cmake .. -DCMAKE_BUILD_TYPE=Debug
+          make -j"$(nproc)"
+
+          # Run the unit-test binary. Don't fail the workflow on red tests
+          # — SonarCloud should still ingest the coverage report so the
+          # dashboard shows what was exercised. Remove `|| ...` if you want
+          # red tests to fail CI.
+          ./run_tests || echo "::warning::host unit tests reported failures — see SonarCloud dashboard"
+
+          # Sonar generic coverage XML (NOT Cobertura). -r points at the
+          # repo root so paths in the XML resolve under sonar.projectBaseDir.
+          # Use the image's plain gcov (no xcrun on Linux).
+          gcovr . \
+            --sonarqube "$GITHUB_WORKSPACE/sonar-coverage.xml" \
+            -r "$GITHUB_WORKSPACE" \
+            --gcov-executable gcov
+
+          ls -l "$GITHUB_WORKSPACE/sonar-coverage.xml"
+          echo "--- sonar-coverage.xml: first <file ...> entries ---"
+          grep -m5 '<file ' "$GITHUB_WORKSPACE/sonar-coverage.xml" || true
+
       - name: SonarCloud scan
         shell: bash
         env:
