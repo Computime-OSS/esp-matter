@@ -18,8 +18,8 @@ if [ $SET_TARGET -eq 1 ]; then
 fi
 
 if [ $BUILD -eq 1 ]; then
-    idf.py build 2>&1 | grep -E "warning|error|Project build complete"
-    # idf.py build
+    # idf.py build 2>&1 | grep -E "warning|error|Project build complete"
+    idf.py build
 fi
 
 if [ $FLASH_APP -eq 1 ]; then

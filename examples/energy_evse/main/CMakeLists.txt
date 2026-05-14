@@ -1,9 +1,11 @@
 set(SRC_DIRS_LIST "."
     "driver/ev_charger/"
+    "driver/unit/"
 )
 set(INCLUDE_DIRS_LIST "."
     "driver/ev_charger/"
     "driver/ev_charger/include/"
+    "driver/unit/"
 )
 
 idf_component_register(SRC_DIRS          ${SRC_DIRS_LIST}
