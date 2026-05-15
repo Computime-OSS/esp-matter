@@ -8,3 +8,6 @@ void run_test_charger_session_math_tests(void);
 
 /// Registers tests for `calculate_energy.cpp` and `get_readable_time.cpp`.
 void run_test_charger_unit_other_tests(void);
+
+/// Registers tests for `charger_uiux_handler.cpp`.
+void run_test_charger_uiux_handler_tests(void);

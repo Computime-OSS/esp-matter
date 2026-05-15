@@ -12,6 +12,7 @@ int main(int argc, char **argv) {
     UNITY_BEGIN();
 
     run_test_charger_app_cmd_tests();
+    run_test_charger_uiux_handler_tests();
     run_test_charger_unit_other_tests();
     run_test_charger_session_math_tests();
 

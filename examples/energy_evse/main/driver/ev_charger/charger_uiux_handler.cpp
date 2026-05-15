@@ -1,5 +1,9 @@
 #include "helpers.h"
+#ifndef UNIT_TEST
 #include "chargerManager.h"
+#else
+#include "chargerManager_uiux_stub.h"
+#endif
 #include "charger_uiux_handler.h"
 
 namespace CT {
@@ -59,7 +63,11 @@ void execCurrentStatus()
 
 void handleStatus_Available()
 {
+#ifndef UNIT_TEST
     PRINTF_DEBUG("Matter[%s], EV is available", MatterManager::GetInstance().isConnected ? "Connected" : "Not Connected");
+#else
+    PRINTF_DEBUG("EV is available (UNIT_TEST)");
+#endif
 }
 
 void handleStatus_Preparing()

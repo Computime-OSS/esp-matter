@@ -21,7 +21,10 @@ include_directories(../../main/driver/ev_charger/include)
 file(GLOB LOCAL_SOURCES *.cpp *.c)
 file(GLOB UNIT_DRIVER_SOURCES ../../main/driver/unit/*.cpp)
 # FIX: Renamed variable to avoid overwriting the driver source lists
-file(GLOB EV_DRIVER_SOURCES ../../main/driver/ev_charger/app_cmd.cpp)
+set(EV_DRIVER_SOURCES
+    ../../main/driver/ev_charger/app_cmd.cpp
+    ../../main/driver/ev_charger/charger_uiux_handler.cpp
+)
 
 # 4. Define the executable using the discovered source lists
 add_executable(run_tests 
