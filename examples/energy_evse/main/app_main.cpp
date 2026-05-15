@@ -30,7 +30,12 @@
 #include <app/server/Server.h>
 
 #include "app_cmd.h"
-#include "charger_main.h"
+
+#include "helpers.h"
+
+#include "hardwareControlInterface.h"
+#include "chargerManager.h"
+#include "matterManager.h"
 
 extern "C" void app_main()
 {
@@ -56,7 +61,10 @@ extern "C" void app_main()
 #endif
 
     PRINTF_DEBUG("Initializing Application Driver ...");
-    esp_matter::Charger::core::app_driver_init();
+    PRINTF_DEBUG("Initializing Main Charger ...");
+    (void)CT::Charger::HardwareControlInterface::Instance().init();
+    (void)CT::Charger::ChargerManager::Controller();
+    (void)CT::Charger::MatterManager::GetInstance().Init();
     
     DEBUG_CHECKPOINT("Initializing Console Commands ...");
     esp_matter::Charger::console::init();
