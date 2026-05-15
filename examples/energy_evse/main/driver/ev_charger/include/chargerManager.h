@@ -30,15 +30,15 @@ public:
 
     ~ChargerManager();
 
-#ifndef UNIT_TEST
     void SetMatterDelegateEnergyEvse(chip::app::Clusters::EnergyEvse::EnergyEvseDelegate * delegate)
     {
         EE_dg = delegate;
     }
-    chip::app::Clusters::EnergyEvse::EnergyEvseDelegate * EE_dg;
+
+#ifdef UNIT_TEST
+    chip::app::Clusters::EnergyEvse::EnergyEvseDelegate * EE_dg = nullptr;
 #else
-    void SetMatterDelegateEnergyEvse(void *delegate) { EE_dg = delegate; }
-    void *EE_dg = nullptr;
+    chip::app::Clusters::EnergyEvse::EnergyEvseDelegate * EE_dg;
 #endif
 
     void showChargerDetails();

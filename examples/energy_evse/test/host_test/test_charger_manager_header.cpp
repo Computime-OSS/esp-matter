@@ -1,6 +1,21 @@
 #include "chargerManager.h"
+#include "matterManager.h"
 
 #include "unity.h"
+
+using CT::Charger::ChargerManager;
+using CT::Charger::MatterManager;
+
+static void test_set_matter_delegate_energy_evse(void)
+{
+    ChargerManager & mgr = ChargerManager::Controller();
+    MatterManager & mm  = MatterManager::GetInstance();
+    mgr.resetForTest();
+
+    TEST_ASSERT_NULL(mgr.EE_dg);
+    mgr.SetMatterDelegateEnergyEvse(&mm.EE_dg);
+    TEST_ASSERT_EQUAL_PTR(&mm.EE_dg, mgr.EE_dg);
+}
 
 static void test_charger_manager_thread_ticks(void)
 {
@@ -15,6 +30,7 @@ static void test_charger_status_enum_values(void)
 
 void run_test_charger_manager_header_tests(void)
 {
+    RUN_TEST(test_set_matter_delegate_energy_evse);
     RUN_TEST(test_charger_manager_thread_ticks);
     RUN_TEST(test_charger_status_enum_values);
 }
