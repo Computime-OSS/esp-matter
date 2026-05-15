@@ -26,7 +26,14 @@ void test_epoch_zero(void) {
     char buf[128];
 
     GetReadableTime(0, buf, sizeof buf);
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("NOT SET", buf, "Expected NOT SET for epoch 0");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("NOT SET", buf, "Expected " "NOT SET");
+}
+
+void test_epoch_86400(void) {
+    char buf[128];
+
+    GetReadableTime(86400u, buf, sizeof buf);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("02/01/2000 00:00", buf, "Expected " "02/01/2000 00:00");
 }
 
 int main(int argc, char **argv) {
@@ -35,6 +42,7 @@ int main(int argc, char **argv) {
     RUN_TEST(test_calculate_energy_standard_value);
     RUN_TEST(test_calculate_energy_zero_amps);
     RUN_TEST(test_epoch_zero);
+    RUN_TEST(test_epoch_86400);
 
 
     return UNITY_END();

@@ -19,7 +19,8 @@ void GetReadableTime(uint32_t matterEpoch_s, char * outStr, size_t outSize)
     time_t unixTime = static_cast<time_t>(matterEpoch_s + kChipEpochSecondsSinceUnixEpoch);
 
     struct tm timeInfo;
-    localtime_r(&unixTime, &timeInfo);
+    // FIX: Changed from localtime_r to gmtime_r to enforce UTC
+    gmtime_r(&unixTime, &timeInfo);
 
     strftime(outStr, outSize, "%d/%m/%Y %H:%M", &timeInfo);
 }

@@ -6,6 +6,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverag
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 
+add_compile_options(-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
+
 add_compile_options(--coverage -O0 -g -fprofile-arcs -ftest-coverage)
 add_link_options(--coverage)
 
