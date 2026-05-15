@@ -48,7 +48,10 @@ public:
 
 class PowerTopologyInstance : public Instance {
 public:
-    PowerTopologyInstance(EndpointId, PowerTopologyDelegate &, Feature, int) {}
+    PowerTopologyInstance(EndpointId, PowerTopologyDelegate & delegate, Feature, int)
+    {
+        mDelegate = &delegate;
+    }
 
     CHIP_ERROR InitializeCluster();
     void ShutdownCluster();

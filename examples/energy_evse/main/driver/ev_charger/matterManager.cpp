@@ -343,13 +343,11 @@ void MatterManager::HandleMatterEventCb(const ChipDeviceEvent *event)
     }
 }
 
-#ifndef UNIT_TEST
 MatterManager & MatterManager::GetInstance()
 {
     static MatterManager instance;
     return instance;
 }
-#endif
 
 MatterManager::MatterManager()
 {

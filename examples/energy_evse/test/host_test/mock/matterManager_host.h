@@ -76,11 +76,7 @@ inline constexpr bool kSupportDischargingV2x = false;
 
 class MatterManager {
 public:
-    static MatterManager & GetInstance()
-    {
-        static MatterManager instance;
-        return instance;
-    }
+    static MatterManager & GetInstance();
 
     MatterManager(MatterManager const &) = delete;
     void operator=(MatterManager const &) = delete;

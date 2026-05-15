@@ -149,6 +149,20 @@ static void test_set_measurement_attributes_report_changes(void)
     TEST_ASSERT_EQUAL(CHIP_NO_ERROR, delegate.SetPowerFactor(make_value(9800)));
     TEST_ASSERT_EQUAL(CHIP_NO_ERROR, delegate.SetNeutralCurrent(make_value(500)));
 
+    TEST_ASSERT_EQUAL(230000, delegate.GetVoltage().Value());
+    TEST_ASSERT_EQUAL(16000, delegate.GetActiveCurrent().Value());
+    TEST_ASSERT_EQUAL(1000, delegate.GetReactiveCurrent().Value());
+    TEST_ASSERT_EQUAL(17000, delegate.GetApparentCurrent().Value());
+    TEST_ASSERT_EQUAL(3600000, delegate.GetActivePower().Value());
+    TEST_ASSERT_EQUAL(500000, delegate.GetReactivePower().Value());
+    TEST_ASSERT_EQUAL(3700000, delegate.GetApparentPower().Value());
+    TEST_ASSERT_EQUAL(230000, delegate.GetRMSVoltage().Value());
+    TEST_ASSERT_EQUAL(16000, delegate.GetRMSCurrent().Value());
+    TEST_ASSERT_EQUAL(3600000, delegate.GetRMSPower().Value());
+    TEST_ASSERT_EQUAL(50000, delegate.GetFrequency().Value());
+    TEST_ASSERT_EQUAL(9800, delegate.GetPowerFactor().Value());
+    TEST_ASSERT_EQUAL(500, delegate.GetNeutralCurrent().Value());
+
     TEST_ASSERT_TRUE(MatterManager::ReportAttributeCallCount() >= 12);
 
     const int before = MatterManager::ReportAttributeCallCount();
