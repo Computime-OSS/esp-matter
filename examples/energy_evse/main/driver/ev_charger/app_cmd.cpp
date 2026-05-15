@@ -1,3 +1,4 @@
+#include <cstring>
 #include <cinttypes>
 #include <cstdint>
 #include <cstdlib>
