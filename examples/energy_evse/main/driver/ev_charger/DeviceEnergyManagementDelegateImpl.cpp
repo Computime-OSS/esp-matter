@@ -16,13 +16,32 @@
  *    limitations under the License.
  */
 
+#ifdef UNIT_TEST
+#include "helpers.h"
+#include "chip_support.h"
+#include "chip_system_layer.h"
+#include "chip_event_logging.h"
+#include "chip_stack_lock.h"
+#include "chip_im_status.h"
+#include "chip_logging.h"
+#include "esp_matter_dem.h"
+#include "EnergyTimeUtils.h"
+#include "matterManager.h"
+#include "DeviceEnergyManagementDelegateImpl.h"
+#include "DEMManufacturerDelegate_host.h"
+
+#undef CHIP_ERROR_FORMAT
+#define CHIP_ERROR_FORMAT "%d"
+#define CHIP_ERR_FMT(e) static_cast<int>(e)
+#else
 #include "DeviceEnergyManagementDelegateImpl.h"
 #include "DEMManufacturerDelegate.h"
 #include "EnergyTimeUtils.h"
 #include <app/EventLogging.h>
 #include <protocols/interaction_model/StatusCode.h>
-
 #include "matterManager.h"
+#define CHIP_ERR_FMT(e) (e).Format()
+#endif
 
 using namespace chip;
 using namespace chip::app;
@@ -32,8 +51,10 @@ using namespace chip::app::Clusters::DeviceEnergyManagement::Attributes;
 
 using chip::Protocols::InteractionModel::Status;
 
+#ifndef UNIT_TEST
 using chip::Optional;
 using CostsList = DataModel::List<const DeviceEnergyManagement::Structs::CostStruct::Type>;
+#endif
 
 using namespace CT::Charger;
 
@@ -81,10 +102,19 @@ void DeviceEnergyManagementDelegate::AddCustomAttributes() const
     // Add custom attributes here
 }
 
-void DeviceEnergyManagementDelegate::AddCustomFeatures(Feature aFeature)
+void DeviceEnergyManagementDelegate::AddCustomFeatures(
+#ifndef UNIT_TEST
+    Feature aFeature)
+#else
+    BitMask<Feature, uint32_t> aFeature)
+#endif
 {
     // add more features here, we can refer to esp_matter_cluster.cpp
+#ifndef UNIT_TEST
     mFeature.Set(aFeature);
+#else
+    mFeature = aFeature;
+#endif
 
     esp_matter::cluster_t * cluster =
         esp_matter::cluster::get(mEndpointId, Clusters::DeviceEnergyManagement::Id);
@@ -154,7 +184,7 @@ Status DeviceEnergyManagementDelegate::PowerAdjustRequest(const int64_t powerMw,
         CHIP_ERROR err = GetEpochTS(mPowerAdjustmentStartTimeUtc);
         if (err != CHIP_NO_ERROR)
         {
-            PRINTF_DEBUG("Unable to get time: %" CHIP_ERROR_FORMAT, err.Format());
+            PRINTF_DEBUG("Unable to get time: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
             return Status::Failure;
         }
     }
@@ -196,7 +226,7 @@ Status DeviceEnergyManagementDelegate::PowerAdjustRequest(const int64_t powerMw,
     if (err != CHIP_NO_ERROR)
     {
         // TODO: Note: should the PowerAdjust just initiated be cancelled because an Event could not be logged?
-        PRINTF_DEBUG("Unable to start a PowerAdjustStart timer: %" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("Unable to start a PowerAdjustStart timer: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
         HandlePowerAdjustRequestFailure();
         return Status::Failure;
     }
@@ -209,7 +239,7 @@ Status DeviceEnergyManagementDelegate::PowerAdjustRequest(const int64_t powerMw,
         if (CHIP_NO_ERROR != err)
         {
             // TODO: Note: should the PowerAdjust just initiated be cancelled because an Event could not be logged?
-            PRINTF_DEBUG("Unable to generate PowerAdjustStart event: %" CHIP_ERROR_FORMAT, err.Format());
+            PRINTF_DEBUG("Unable to generate PowerAdjustStart event: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
             HandlePowerAdjustRequestFailure();
             return Status::Failure;
         }
@@ -353,7 +383,7 @@ CHIP_ERROR DeviceEnergyManagementDelegate::GeneratePowerAdjustEndEvent(CauseEnum
     }
     else
     {
-        PRINTF_DEBUG("Unable to get time: %" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("Unable to get time: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
         return err;
     }
 
@@ -364,7 +394,7 @@ CHIP_ERROR DeviceEnergyManagementDelegate::GeneratePowerAdjustEndEvent(CauseEnum
     err = LogEvent(event, mEndpointId, eventNumber);
     if (CHIP_NO_ERROR != err)
     {
-        PRINTF_DEBUG("Unable to generate PowerAdjustEnd event: %" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("Unable to generate PowerAdjustEnd event: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
     }
 
     return err;
@@ -498,7 +528,7 @@ Status DeviceEnergyManagementDelegate::PauseRequest(const uint32_t durationS, Ad
         err = LogEvent(event, mEndpointId, eventNumber);
         if (CHIP_NO_ERROR != err)
         {
-            PRINTF_DEBUG("Unable to generate Paused event: %" CHIP_ERROR_FORMAT, err.Format());
+            PRINTF_DEBUG("Unable to generate Paused event: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
             HandlePauseRequestFailure();
             return Status::Failure;
         }
@@ -632,7 +662,7 @@ CHIP_ERROR DeviceEnergyManagementDelegate::GenerateResumedEvent(CauseEnum cause)
     CHIP_ERROR err = LogEvent(event, mEndpointId, eventNumber);
     if (CHIP_NO_ERROR != err)
     {
-        PRINTF_DEBUG("Unable to generate Resumed event: %" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("Unable to generate Resumed event: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
     }
 
     return err;

@@ -39,6 +39,9 @@ struct ChargingTargetStruct {
 namespace DataModel {
 
 template <typename T>
+using Nullable = chip::Nullable<T>;
+
+template <typename T>
 struct List {
     const T * data  = nullptr;
     size_t count  = 0;

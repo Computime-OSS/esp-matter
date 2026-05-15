@@ -19,6 +19,7 @@ enum CHIP_ERROR : int {
     CHIP_ERROR_INTERNAL = 7,
     CHIP_ERROR_NO_MEMORY = 8,
     CHIP_ERROR_WRONG_KEY_TYPE = 9,
+    CHIP_ERROR_BAD_REQUEST = 10,
 };
 
 struct CHIP_ERROR_FORMAT {
@@ -36,15 +37,45 @@ inline bool UnixEpochToChipEpochTime(uint32_t unixEpochTimeSeconds, uint32_t & o
     return true;
 }
 
-template <typename EnumType>
+template <typename EnumType, typename Storage = uint32_t>
 class BitMask {
 public:
     BitMask() : mValue(0) {}
-    explicit BitMask(uint8_t v) : mValue(v) {}
-    uint8_t Raw() const { return mValue; }
+    explicit BitMask(EnumType e) : mValue(static_cast<Storage>(e)) {}
+    explicit BitMask(Storage v) : mValue(v) {}
+
+    void Set(EnumType e) { mValue = static_cast<Storage>(e); }
+    bool Has(EnumType e) const { return (mValue & static_cast<Storage>(e)) != 0; }
+    Storage Raw() const { return mValue; }
 
 private:
-    uint8_t mValue;
+    Storage mValue = 0;
+};
+
+template <typename T>
+class Nullable {
+public:
+    bool IsNull() const { return mIsNull; }
+
+    T & Value()
+    {
+        mIsNull = false;
+        return mValue;
+    }
+
+    const T & Value() const { return mValue; }
+
+    void SetNonNull(const T & value)
+    {
+        mValue  = value;
+        mIsNull = false;
+    }
+
+    void SetNull() { mIsNull = true; }
+
+private:
+    bool mIsNull = true;
+    T mValue{};
 };
 
 struct MutableByteSpan {
@@ -144,4 +175,7 @@ using chip::CHIP_ERROR_UNSUPPORTED_CHIP_FEATURE;
 using chip::CHIP_ERROR_INTERNAL;
 using chip::CHIP_ERROR_NO_MEMORY;
 using chip::CHIP_ERROR_WRONG_KEY_TYPE;
+using chip::CHIP_ERROR_BAD_REQUEST;
 using chip::MutableByteSpan;
+using chip::BitMask;
+using chip::Nullable;
