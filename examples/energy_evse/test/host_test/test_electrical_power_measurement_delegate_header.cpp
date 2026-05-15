@@ -1,4 +1,4 @@
-#include "ElectricalPowerMeasurementDelegate_host.h"
+#include "ElectricalPowerMeasurementDelegate.h"
 
 #include "unity.h"
 

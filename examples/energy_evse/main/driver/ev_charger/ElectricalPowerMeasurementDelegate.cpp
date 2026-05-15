@@ -16,6 +16,16 @@
  *    limitations under the License.
  */
 
+#ifdef UNIT_TEST
+#include "helpers.h"
+#include "chip_support.h"
+#include "chip_im_status.h"
+#include "esp_matter_epm.h"
+#include "matterManager.h"
+#include "ElectricalPowerMeasurementDelegate.h"
+
+#include <array>
+#else
 #include <ElectricalPowerMeasurementDelegate.h>
 #include <app/reporting/reporting.h>
 
@@ -24,6 +34,7 @@
 #include <app/clusters/electrical-power-measurement-server/electrical-power-measurement-server.h>
 
 #include "matterManager.h"
+#endif
 
 using namespace chip;
 using namespace chip::app;

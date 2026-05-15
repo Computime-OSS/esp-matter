@@ -35,6 +35,7 @@ set(EV_DRIVER_SOURCES
     ../../main/driver/ev_charger/ESP32DeviceInstanceInfoProvider.cpp
     ../../main/driver/ev_charger/ChargingTargetsMemMgr.cpp
     ../../main/driver/ev_charger/DeviceEnergyManagementDelegateImpl.cpp
+    ../../main/driver/ev_charger/ElectricalPowerMeasurementDelegate.cpp
 )
 
 set(MAIN_SOURCES

@@ -42,6 +42,14 @@ template <typename T>
 using Nullable = chip::Nullable<T>;
 
 template <typename T>
+Nullable<T> MakeNullable(const T & value)
+{
+    Nullable<T> out;
+    out.SetNonNull(value);
+    return out;
+}
+
+template <typename T>
 struct List {
     const T * data  = nullptr;
     size_t count  = 0;

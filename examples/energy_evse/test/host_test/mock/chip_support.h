@@ -73,6 +73,16 @@ public:
 
     void SetNull() { mIsNull = true; }
 
+    bool operator==(const Nullable & other) const
+    {
+        if (mIsNull != other.mIsNull) {
+            return false;
+        }
+        return mIsNull || mValue == other.mValue;
+    }
+
+    bool operator!=(const Nullable & other) const { return !(*this == other); }
+
 private:
     bool mIsNull = true;
     T mValue{};
