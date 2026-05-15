@@ -67,7 +67,7 @@ extern "C" void app_main()
     (void)CT::Charger::MatterManager::GetInstance().Init();
     
     DEBUG_CHECKPOINT("Initializing Console Commands ...");
-    esp_matter::Charger::console::init();
+    esp_matter::Charger::console::charger_commands_register();
 
 #if CONFIG_ENABLE_CHIP_SHELL
     esp_matter::console::diagnostics_register_commands();

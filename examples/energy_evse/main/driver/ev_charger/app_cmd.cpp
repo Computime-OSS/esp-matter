@@ -40,9 +40,9 @@ namespace {
 [[maybe_unused]] constexpr const char kPromptStr[] = "EVC";
 } // namespace
 
-static const char * const TAG = "charger general command";
+const char * const TAG = "charger general command";
 
-static void hw_exec_cable(int argc, char ** argv)
+void hw_exec_cable(int argc, char ** argv)
 {
     if (argc <= 2)
     {
@@ -53,7 +53,7 @@ static void hw_exec_cable(int argc, char ** argv)
         connected ? CT::Charger::HwCableStatus_t::CONNECTED : CT::Charger::HwCableStatus_t::NOT_CONNECTED);
 }
 
-static void hw_exec_limit(int argc, char ** argv)
+void hw_exec_limit(int argc, char ** argv)
 {
     if (argc <= 2)
     {
@@ -64,7 +64,7 @@ static void hw_exec_limit(int argc, char ** argv)
     DEBUG_CHECKPOINT("emulator: charge limit set to %" PRId64 " mA", static_cast<int64_t>(limit));
 }
 
-static void hw_exec_ev(int argc, char ** argv)
+void hw_exec_ev(int argc, char ** argv)
 {
     if (argc <= 2)
     {
@@ -75,7 +75,7 @@ static void hw_exec_ev(int argc, char ** argv)
     DEBUG_CHECKPOINT("emulator: set EV drawing to %s", isDrawing ? "true" : "false");
 }
 
-static void hw_exec_fault(int argc, char ** argv)
+void hw_exec_fault(int argc, char ** argv)
 {
     if (argc <= 2)
     {
@@ -86,7 +86,7 @@ static void hw_exec_fault(int argc, char ** argv)
     DEBUG_CHECKPOINT("emulator: set fault code to %" PRIu8, faultCode);
 }
 
-static int hw_cmd_handler(int argc, char ** argv)
+int hw_cmd_handler(int argc, char ** argv)
 {
     if (argc <= 1)
     {
@@ -115,84 +115,7 @@ static int hw_cmd_handler(int argc, char ** argv)
     return 0;
 }
 
-static esp_err_t wifi_connect_handler(int argc, char **argv)
-{
-    ESP_RETURN_ON_FALSE(argc >= 4, ESP_ERR_INVALID_ARG, TAG, "Usage: sw wifi <ssid> <password>");
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_RETURN_ON_ERROR(esp_wifi_init(&cfg), TAG, "Failed to initialize WiFi");
-    ESP_RETURN_ON_ERROR(esp_wifi_stop(), TAG, "Failed to stop WiFi");
-    ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA), TAG, "Failed to set WiFi mode");
-    wifi_sta_config_t sta_cfg{};
-    snprintf(reinterpret_cast<char *>(sta_cfg.ssid), sizeof(sta_cfg.ssid), "%s", argv[2]);
-    snprintf(reinterpret_cast<char *>(sta_cfg.password), sizeof(sta_cfg.password), "%s", argv[3]);
-    wifi_config_t wifi_cfg{};
-    wifi_cfg.sta = sta_cfg;
-    ESP_RETURN_ON_ERROR(esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg), TAG, "Failed to set WiFi configuration");
-    ESP_RETURN_ON_ERROR(esp_wifi_start(), TAG, "Failed to start WiFi");
-    ESP_RETURN_ON_ERROR(esp_wifi_connect(), TAG, "Failed to connect WiFi");
-    return ESP_OK;
-}
-
-static void check_nvs_health() {
-    // 1. Initialize NVS with Error Handling (The "Safe" Way)
-    esp_err_t ret = nvs_flash_init();
-    
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        PRINTF_DEBUG("NVS corruption/truncation detected (0x%X). Erasing partition...", ret);
-        // If partition is damaged, we MUST erase it to fix the crash
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
-    // 2. Get and Print Partition Statistics
-    nvs_stats_t nvs_stats;
-    // Use "nvs" for the default partition name from your table
-    ret = nvs_get_stats("nvs", &nvs_stats);
-    
-    if (ret == ESP_OK) {
-       PRINTF_DEBUG("===== NVS Partition Stats =====");
-       PRINTF_DEBUG("Total Entries:      %d", nvs_stats.total_entries);
-       PRINTF_DEBUG("Used Entries:       %d", nvs_stats.used_entries);
-       PRINTF_DEBUG("Free Entries:       %d", nvs_stats.free_entries);
-       PRINTF_DEBUG("Namespace Count:    %d", nvs_stats.namespace_count);
-       PRINTF_DEBUG("===============================");
-    } else {
-        PRINTF_DEBUG("Failed to get NVS stats (0x%X)", ret);
-    }
-
-    // 3. List All Keys (Optional - useful for debugging what's inside)
-    nvs_iterator_t it = nullptr;
-    esp_err_t res     = nvs_entry_find(NVS_DEFAULT_PART_NAME, nullptr, NVS_TYPE_ANY, &it);
-    while (res == ESP_OK) {
-        nvs_entry_info_t info;
-        nvs_entry_info(it, &info);
-        PRINTF_DEBUG("Key found: '%s' in namespace '%s', Type: %d", 
-                 info.key, info.namespace_name, info.type);
-        res = nvs_entry_next(&it);
-    }
-    nvs_release_iterator(it);
-}
-
-static void sw_exec_nvs(int argc, char ** argv)
-{
-    if (argc <= 2)
-    {
-        return;
-    }
-    if (!strcasecmp(argv[2], "erase"))
-    {
-        esp_err_t const err = nvs_flash_erase();
-        PRINTF_DEBUG("NVS erase %s", err == ESP_OK ? "Done" : "Failed");
-        return;
-    }
-    if (!strcasecmp(argv[2], "info"))
-    {
-        check_nvs_health();
-    }
-}
-
-static void sw_exec_current(int argc, char ** argv)
+void sw_exec_current(int argc, char ** argv)
 {
     if (argc <= 2)
     {
@@ -207,7 +130,7 @@ static void sw_exec_current(int argc, char ** argv)
     CT::Charger::ChargerManager::Controller().setChargingSessionCurrentLimit(data1);
 }
 
-static int sw_cmd_handler(int argc, char ** argv)
+int sw_cmd_handler(int argc, char ** argv)
 {
     if (argc <= 1)
     {
@@ -226,14 +149,6 @@ static int sw_cmd_handler(int argc, char ** argv)
     if (!strcasecmp(argv[1], "reboot"))
     {
         esp_restart();
-        return 0;
-    }
-    if (!strcasecmp(argv[1], "wifi"))
-    {
-        if (argc > 3)
-        {
-            wifi_connect_handler(argc, argv);
-        }
         return 0;
     }
     if (!strcasecmp(argv[1], "device"))
@@ -264,7 +179,7 @@ static int sw_cmd_handler(int argc, char ** argv)
     return 0;
 }
 
-static int nfc_cmd_handler(int argc, char **argv)
+int nfc_cmd_handler(int argc, char **argv)
 {
 	if (argc > 1)
 	{
@@ -277,7 +192,7 @@ static int nfc_cmd_handler(int argc, char **argv)
 	return 0;
 }
 
-static void charger_commands_register()
+void charger_commands_register()
 {
     const esp_console_cmd_t cmd_list[] = {
         {.command = "hw",
@@ -292,11 +207,6 @@ static void charger_commands_register()
 	{
         esp_console_cmd_register(&cmd_list[i]);
     }
-}
-
-void init()
-{
-    charger_commands_register();
 }
 
 } // namespace console
