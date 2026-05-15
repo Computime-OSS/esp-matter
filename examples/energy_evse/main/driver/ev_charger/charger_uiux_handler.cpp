@@ -1,9 +1,5 @@
 #include "helpers.h"
-#ifndef UNIT_TEST
 #include "chargerManager.h"
-#else
-#include "chargerManager_uiux_stub.h"
-#endif
 #include "charger_uiux_handler.h"
 
 namespace CT {

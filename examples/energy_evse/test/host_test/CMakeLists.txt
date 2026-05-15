@@ -24,6 +24,7 @@ file(GLOB UNIT_DRIVER_SOURCES ../../main/driver/unit/*.cpp)
 set(EV_DRIVER_SOURCES
     ../../main/driver/ev_charger/app_cmd.cpp
     ../../main/driver/ev_charger/charger_uiux_handler.cpp
+    ../../main/driver/ev_charger/chargerManager.cpp
 )
 
 # 4. Define the executable using the discovered source lists

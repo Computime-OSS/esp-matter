@@ -7,8 +7,14 @@
 
 #include "helpers.h"
 
+#ifndef UNIT_TEST
 #include "hardwareControlInterface.h"
 #include "matterManager.h"
+#else
+#include "hardwareControlInterface_unit_stub.h"
+#include "matterManager_unit_stub.h"
+typedef void *SemaphoreHandle_t;
+#endif
 
 #define CHARGER_MGR_THREAD_TICKS        (200) // 200ms for each run
 
@@ -24,11 +30,16 @@ public:
 
     ~ChargerManager();
 
+#ifndef UNIT_TEST
     void SetMatterDelegateEnergyEvse(chip::app::Clusters::EnergyEvse::EnergyEvseDelegate * delegate)
     {
         EE_dg = delegate;
     }
     chip::app::Clusters::EnergyEvse::EnergyEvseDelegate * EE_dg;
+#else
+    void SetMatterDelegateEnergyEvse(void *delegate) { EE_dg = delegate; }
+    void *EE_dg = nullptr;
+#endif
 
     void showChargerDetails();
     void showChargingSessionInfo();
@@ -45,7 +56,7 @@ public:
     
     std::thread update_thread_;
     std::atomic<bool> running_;
-    std::atomic<ChargerStatus_t> onHoldStatus_ = ChargerStatus_t::INIT;
+    std::atomic<ChargerStatus_t> onHoldStatus_{ChargerStatus_t::INIT};
 
     struct {
         std::atomic<bool> isActive_;
@@ -120,6 +131,11 @@ public:
     std::string statusToString(ChargerStatus_t status) const;
     
     bool onTimeEqual_Second(uint32_t sec);
+
+#ifdef UNIT_TEST
+    /// Reset singleton state between host tests (no thread / no Matter stack).
+    void resetForTest();
+#endif
 
 private:
     bool checkAuthorizedPreparingState();

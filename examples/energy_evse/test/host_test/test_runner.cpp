@@ -13,6 +13,7 @@ int main(int argc, char **argv) {
 
     run_test_charger_app_cmd_tests();
     run_test_charger_uiux_handler_tests();
+    run_test_charger_manager_tests();
     run_test_charger_unit_other_tests();
     run_test_charger_session_math_tests();
 

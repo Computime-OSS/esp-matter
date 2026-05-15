@@ -11,3 +11,6 @@ void run_test_charger_unit_other_tests(void);
 
 /// Registers tests for `charger_uiux_handler.cpp`.
 void run_test_charger_uiux_handler_tests(void);
+
+/// Registers tests for `chargerManager.cpp`.
+void run_test_charger_manager_tests(void);

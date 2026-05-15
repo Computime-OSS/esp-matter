@@ -1,4 +1,4 @@
-#include "chargerManager_uiux_stub.h"
+#include "chargerManager.h"
 #include "charger_uiux_handler.h"
 
 #include "unity.h"
@@ -7,7 +7,7 @@ using CT::Charger::ChargerManager;
 using CT::Charger::ChargerStatus_t;
 
 static void mgr_reset() {
-    ChargerManager::Controller().resetForTest();
+    CT::Charger::ChargerManager::Controller().resetForTest();
 }
 
 static void test_uiux_exec_INIT_hits_default(void) {
@@ -51,7 +51,7 @@ static void test_uiux_exec_CHARGING_inactive_routes_finishing(void) {
     auto &m = ChargerManager::Controller();
     m.status = ChargerStatus_t::CHARGING;
     m.session.isActive_ = false;
-    m.on_time_equal_1 = true;
+    m.thread_ticks = 10;
     m.session.timeElapsed = 10;
     m.session.chargingData.energyDelivered_mWh = 5000;
     CT::Charger::UIUX::execCurrentStatus();
@@ -73,7 +73,7 @@ static void test_uiux_exec_FINISHING(void) {
     mgr_reset();
     auto &m = ChargerManager::Controller();
     m.status = ChargerStatus_t::FINISHING;
-    m.on_time_equal_1 = true;
+    m.thread_ticks = 10;
     m.session.timeElapsed = 99;
     m.session.chargingData.energyDelivered_mWh = 1234;
     CT::Charger::UIUX::execCurrentStatus();
@@ -100,8 +100,7 @@ static void test_uiux_exec_FAULTED(void) {
 static void test_uiux_handle_charging_early_return_when_not_one_sec_tick(void) {
     mgr_reset();
     auto &m = ChargerManager::Controller();
-    m.on_time_equal_1 = false;
-    m.on_time_equal_5 = false;
+    m.thread_ticks = 4;
     m.uiux.itemIdx = 0;
     CT::Charger::UIUX::handleStatus_Charging();
 }
@@ -109,8 +108,7 @@ static void test_uiux_handle_charging_early_return_when_not_one_sec_tick(void) {
 static void test_uiux_handle_charging_itemIdx0_branch(void) {
     mgr_reset();
     auto &m = ChargerManager::Controller();
-    m.on_time_equal_1 = true;
-    m.on_time_equal_5 = false;
+    m.thread_ticks = 10;
     m.uiux.itemIdx = 0;
     m.session.chargingData.current = 10000;
     m.session.chargingData.voltage = 230;
@@ -120,7 +118,7 @@ static void test_uiux_handle_charging_itemIdx0_branch(void) {
 static void test_uiux_handle_charging_itemIdx1_branch(void) {
     mgr_reset();
     auto &m = ChargerManager::Controller();
-    m.on_time_equal_1 = true;
+    m.thread_ticks = 10;
     m.uiux.itemIdx = 1;
     m.session.timeElapsed = 60;
     m.session.chargingData.energyDelivered_mWh = 5000;
@@ -131,7 +129,7 @@ static void test_uiux_handle_charging_itemIdx1_branch(void) {
 static void test_uiux_handle_charging_itemIdx2_power_branch(void) {
     mgr_reset();
     auto &m = ChargerManager::Controller();
-    m.on_time_equal_1 = true;
+    m.thread_ticks = 10;
     m.uiux.itemIdx = 2;
     m.session.chargingData.current = 16000;
     m.session.chargingData.voltage = 230;
@@ -141,8 +139,7 @@ static void test_uiux_handle_charging_itemIdx2_power_branch(void) {
 static void test_uiux_handle_charging_sec5_tick_wraps_itemIdx(void) {
     mgr_reset();
     auto &m = ChargerManager::Controller();
-    m.on_time_equal_5 = true;
-    m.on_time_equal_1 = false;
+    m.thread_ticks = 25;
     m.uiux.itemIdx = 2;
     CT::Charger::UIUX::handleStatus_Charging();
     TEST_ASSERT_EQUAL_UINT32(0u, m.uiux.itemIdx);
@@ -151,8 +148,7 @@ static void test_uiux_handle_charging_sec5_tick_wraps_itemIdx(void) {
 static void test_uiux_handle_charging_sec5_advances_from_zero(void) {
     mgr_reset();
     auto &m = ChargerManager::Controller();
-    m.on_time_equal_5 = true;
-    m.on_time_equal_1 = false;
+    m.thread_ticks = 25;
     m.uiux.itemIdx = 0;
     CT::Charger::UIUX::handleStatus_Charging();
     TEST_ASSERT_EQUAL_UINT32(1u, m.uiux.itemIdx);
@@ -160,14 +156,14 @@ static void test_uiux_handle_charging_sec5_advances_from_zero(void) {
 
 static void test_uiux_handle_finishing_early_return(void) {
     mgr_reset();
-    ChargerManager::Controller().on_time_equal_1 = false;
+    ChargerManager::Controller().thread_ticks = 4;
     CT::Charger::UIUX::handleStatus_Finishing();
 }
 
 static void test_uiux_handle_finishing_when_one_sec_tick(void) {
     mgr_reset();
     auto &m = ChargerManager::Controller();
-    m.on_time_equal_1 = true;
+    m.thread_ticks = 10;
     m.session.timeElapsed = 42;
     m.session.chargingData.energyDelivered_mWh = 9999;
     CT::Charger::UIUX::handleStatus_Finishing();

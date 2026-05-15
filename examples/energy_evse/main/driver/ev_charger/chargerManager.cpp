@@ -7,16 +7,25 @@
 #include <ctime>
 #include <cinttypes>
 
+#ifndef UNIT_TEST
 #include "esp_matter.h"
+#else
+#include "esp_timer.h"
+#endif
 
 #include "helpers.h"
 #include "charger_uiux_handler.h"
 #include "chargerManager.h"
-#include "hardwareControlInterface.h"
 #include "charger_session_math.h"
 
+#ifndef UNIT_TEST
 using namespace chip::app;
+#endif
 using namespace CT::Charger;
+
+namespace {
+uint32_t g_finishingTimeCnt200ms = 0;
+} // namespace
 
 ChargerStatus_t ChargerManager::findNextChargerStatus(ChargerStatus_t current) 
 {
@@ -58,9 +67,8 @@ ChargerStatus_t ChargerManager::findNextChargerStatus(ChargerStatus_t current)
         case ChargerStatus_t::FINISHING:
         {
             //introduce some delay to simulate the time for session to fully finish and update the energy delivered
-            static uint32_t finishingTimeCnt_200ms = 0;
-            if (finishingTimeCnt_200ms++ > 10) { // after 2 seconds, transition to AVAILABLE
-                finishingTimeCnt_200ms = 0;
+            if (g_finishingTimeCnt200ms++ > 10) { // after 2 seconds, transition to AVAILABLE
+                g_finishingTimeCnt200ms = 0;
                 next = ChargerStatus_t::AVAILABLE;
             } else {
                 next = ChargerStatus_t::FINISHING;
@@ -106,8 +114,10 @@ void ChargerManager::setDetectedCard(const std::string &uid)
 {
     // PRINTF_DEBUG("Detected NFC Card UID: %s", reader_utf8);
     ChargerManager::Controller().processDetectedCard(uid);
+#ifndef UNIT_TEST
     ChargerManager::Controller().EE_dg->SendEvent_DetectedCard(
         chip::ByteSpan(reinterpret_cast<const uint8_t *>(uid.data()), uid.size()));
+#endif
 
     PRINTF_DEBUG("Detected a card UID: %s", uid.c_str());
 }
@@ -122,9 +132,11 @@ ChargerManager& ChargerManager::Controller()
 ChargerManager::~ChargerManager() 
 {
     running_ = false; // Signal the thread to stop
+#ifndef UNIT_TEST
     if (update_thread_.joinable()) {
         update_thread_.join(); // Wait for the thread to finish
     }
+#endif
     PRINTF_DEBUG("ChargerManager shut down successfully.");
 }
 
@@ -411,6 +423,7 @@ void ChargerManager::onSessionEnd()
 
 bool ChargerManager::checkHwFault()
 {
+#ifndef UNIT_TEST
     chip::app::Clusters::EnergyEvse::FaultStateEnum f =
         static_cast<chip::app::Clusters::EnergyEvse::FaultStateEnum>(pHwControl->getFaultCode());
     if (f != chip::app::Clusters::EnergyEvse::FaultStateEnum::kNoError) {
@@ -418,6 +431,14 @@ bool ChargerManager::checkHwFault()
         return true;
     }
     return false;
+#else
+    const uint8_t code = pHwControl->getFaultCode();
+    if (code != 0U) {
+        PRINTF_DEBUG("Fault detected! Fault code: 0x%02X", code);
+        return true;
+    }
+    return false;
+#endif
 }
 
 void ChargerManager::findNextStatus() 
@@ -665,6 +686,48 @@ bool ChargerManager::onTimeEqual_Second(uint32_t sec)
     return charger_thread_tick_aligns_interval(thread_ticks, sec, CHARGER_MGR_THREAD_TICKS);
 }
 
+void ChargerManager::setReadySemaphore(SemaphoreHandle_t semaphore)
+{
+    (void) semaphore;
+}
+
+void ChargerManager::setPowerBoardReady(bool ready)
+{
+    (void) ready;
+}
+
+#ifdef UNIT_TEST
+void ChargerManager::resetForTest()
+{
+    g_finishingTimeCnt200ms = 0;
+    unit_test_esp_timer_now_us() = 1'000'000LL;
+
+    HardwareControlInterface::Instance().resetForTest();
+    MatterManager::GetInstance().resetForTest();
+
+    running_ = false;
+    status = ChargerStatus_t::INIT;
+    onHoldStatus_ = ChargerStatus_t::INIT;
+    thread_ticks = 0;
+    uiux.itemIdx = 0;
+    state_action_run_ = false;
+    inAuthProcess_ = false;
+    detectedCard_.clear();
+    EE_dg = nullptr;
+
+    config.phaseAmount = 1;
+    config.currentLimit_HW = 32000;
+    config.chargeCurrent_min = 6000;
+    config.chargeCurrent_max = config.currentLimit_HW;
+    config.auth.type = AuthType_t::AUTH_TYPE_NONE;
+    config.auth.inProgress = false;
+    config.auth.timeCnt = 0;
+
+    resetSessionData();
+    session.config.currentLimit = config.currentLimit_HW;
+}
+#endif
+
 ChargerManager::ChargerManager()
 {
     running_ = false;
@@ -674,7 +737,8 @@ ChargerManager::ChargerManager()
 
     resetSessionData();
 
-    // Start the background thread when the singleton instance is created
+#ifndef UNIT_TEST
     update_thread_ = std::thread(&ChargerManager::mainLoop, this);
-    PRINTF_DEBUG("ChargerManager created and background task started.");
+#endif
+    PRINTF_DEBUG("ChargerManager created.");
 }
