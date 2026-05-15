@@ -5,31 +5,13 @@
 
 #include <esp_check.h>
 #include <esp_log.h>
-
-#include <nvs_flash.h>
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
+#include "esp_console.h"
 #include <esp_matter_console.h>
 #include <esp_matter_core.h>
 
-#include <esp_wifi.h>
-#include "esp_console.h"
-#include "esp_vfs_dev.h"
-#include "esp_vfs_fat.h"
-#include "esp_vfs_usb_serial_jtag.h"
-#include "argtable3/argtable3.h"
-#include "driver/uart.h"
-#include "driver/usb_serial_jtag.h"
-#include "hal/uart_types.h"
-#include "linenoise/linenoise.h"
-
 #include "helpers.h"
 #include "hardwareControlInterface.h"
-
 #include "chargerManager.h"
-
 #include "app_cmd.h"
 
 namespace esp_matter {
@@ -139,11 +121,6 @@ int sw_cmd_handler(int argc, char ** argv)
     if (!strcasecmp(argv[1], "factoryreset"))
     {
         (void) esp_matter::factory_reset();
-        return 0;
-    }
-    if (!strcasecmp(argv[1], "nvs"))
-    {
-        sw_exec_nvs(argc, argv);
         return 0;
     }
     if (!strcasecmp(argv[1], "reboot"))
