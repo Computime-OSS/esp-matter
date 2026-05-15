@@ -16,19 +16,28 @@
  *    limitations under the License.
  */
 
-#include "esp_matter.h"
-
 #include "helpers.h"
 
+#ifdef UNIT_TEST
+#include "PowerTopologyDelegate_host.h"
+#else
+#include "esp_matter.h"
 #include <PowerTopologyDelegate.h>
+#endif
 
 #include <iterator>
+
+#ifdef UNIT_TEST
+#include "chip_support.h"
+#endif
 
 using namespace chip;
 using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::PowerTopology;
 
+#ifndef UNIT_TEST
 using namespace esp_matter;
+#endif
 
 CHIP_ERROR PowerTopologyDelegate::GetAvailableEndpointAtIndex(size_t index, EndpointId & endpointId)
 {
@@ -76,6 +85,7 @@ void PowerTopologyDelegate::AddCustomAttributes() const
 
 void PowerTopologyDelegate::AddCustomFeatures(Feature aFeature)
 {
+#ifndef UNIT_TEST
     mFeature.Set(aFeature);
 
     //this is already set when create the power_topology cluster in esp_matter_endpoint.cpp
@@ -89,10 +99,15 @@ void PowerTopologyDelegate::AddCustomFeatures(Feature aFeature)
             feature::dynamic_power_flow::add(cluster);
         }
     }
+#else
+    mFeatureRaw = static_cast<uint32_t>(aFeature);
+    (void) mEndpointId;
+#endif
 }
 
 void PowerTopologyDelegate::LateSetupAfterMatter()
 {
+#ifndef UNIT_TEST
     PRINTF_DEBUG();
     esp_matter_attr_val_t val =
         esp_matter_array((uint8_t *) mAvailableEps, std::size(mAvailableEps), std::size(mAvailableEps));
@@ -105,6 +120,9 @@ void PowerTopologyDelegate::LateSetupAfterMatter()
         return;
     }
     PRINTF_DEBUG("Power Source ActiveEndpoints: (OK)");
+#else
+    (void) mAvailableEps;
+#endif
 }
 
 CHIP_ERROR PowerTopologyInstance::InitializeCluster()

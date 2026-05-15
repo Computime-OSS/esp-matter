@@ -19,11 +19,18 @@
 
 #include "helpers.h"
 
+#ifdef UNIT_TEST
+#include "chip_support.h"
+#include <iterator>
+#include "esp_sntp.h"
+#include "nvs.h"
+#else
 #include "nvs_flash.h"
-
 #include <esp_sntp.h>
 #include <lib/support/logging/CHIPLogging.h>
 #include <lib/support/TimeUtils.h>
+#endif
+
 #include <array>
 #include <string>
 
@@ -136,14 +143,15 @@ void Init(const char * aSntpServerName, const uint16_t aSyncSntpIntervalDay)
     if (esp_sntp_enabled())
     {
         PRINTF_DEBUG("SNTP already initialized.");
+#ifdef UNIT_TEST
+        return;
+#endif
     }
     PRINTF_DEBUG("Initializing SNTP. Using the SNTP server: %s", sntpServerName.c_str());
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, sntpServerName.c_str());
-
     esp_sntp_setservername(1, "time.salusconnect.io");
-	esp_sntp_setservername(2, "time1.salusconnect.io");
-
+    esp_sntp_setservername(2, "time1.salusconnect.io");
     sntp_set_time_sync_notification_cb(TimeSyncCallback);
     esp_sntp_init();
 }

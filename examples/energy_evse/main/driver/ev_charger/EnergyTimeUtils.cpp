@@ -21,12 +21,17 @@
 
 #include "helpers.h"
 
+#ifdef UNIT_TEST
+#include "EnergyTimeUtils.h"
+#else
 #include <EnergyTimeUtils.h>
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <app-common/zap-generated/cluster-objects.h>
 #include <app/EventLogging.h>
+#endif
 
 using namespace chip;
+#ifndef UNIT_TEST
 using namespace chip::app;
 using namespace chip::app::DataModel;
 using namespace chip::app::Clusters;
@@ -35,6 +40,10 @@ using namespace chip::app::Clusters::EnergyEvse::Attributes;
 
 using chip::app::LogEvent;
 using chip::Protocols::InteractionModel::Status;
+#else
+using namespace chip::app::Clusters;
+using namespace chip::app::Clusters::EnergyEvse;
+#endif
 
 namespace chip {
 namespace app {
@@ -63,12 +72,16 @@ CHIP_ERROR GetEpochTS(uint32_t & chipEpoch)
 
     if (err != CHIP_NO_ERROR)
     {
-        PRINTF_DEBUG("Unable to get current time - err:%" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("Unable to get current time - err:%d", err);
         return err;
     }
 
     // 3. Compare Unix Epoch from SDK vs Expected
+#ifdef UNIT_TEST
+    const auto unixEpoch = static_cast<uint32_t>(cTMs / 1000);
+#else
     auto unixEpoch = std::chrono::duration_cast<System::Clock::Seconds32>(cTMs).count();
+#endif
     PRINTF_DEBUG("DEBUG: Matter SDK Unix Epoch: %u", (uint32_t)unixEpoch);
 
     // 4. Check the Conversion to Chip Epoch (Matter Epoch)
@@ -107,9 +120,9 @@ BitMask<EnergyEvse::TargetDayOfWeekBitmap> GetLocalDayOfWeekFromUnixEpoch(time_t
 
     // Calculate the bitmap value based on the day of the week. Note that the value in bitmap
     // maps directly to the definition in EnergyEvse::TargetDayOfWeekBitmap.
-    auto bitmap = static_cast<uint8_t>(1 << dayOfWeek);
+    const auto bitmap = static_cast<uint8_t>(1 << dayOfWeek);
 
-    return bitmap;
+    return BitMask<TargetDayOfWeekBitmap>(bitmap);
 }
 /**
  * @brief   Helper function to get current timestamp and work out the day of week based on localtime
@@ -123,10 +136,14 @@ CHIP_ERROR GetLocalDayOfWeekNow(BitMask<EnergyEvse::TargetDayOfWeekBitmap> & day
     CHIP_ERROR err = System::SystemClock().GetClock_RealTimeMS(cTMs);
     if (err != CHIP_NO_ERROR)
     {
-        PRINTF_DEBUG("Unable to get current time - err:%" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("Unable to get current time - err:%d", err);
         return err;
     }
+#ifdef UNIT_TEST
+    const time_t unixEpoch = static_cast<time_t>(cTMs / 1000);
+#else
     time_t unixEpoch = std::chrono::duration_cast<System::Clock::Seconds32>(cTMs).count();
+#endif
 
     dayOfWeekMap     = GetLocalDayOfWeekFromUnixEpoch(unixEpoch);
 
@@ -145,10 +162,14 @@ CHIP_ERROR GetMinutesPastMidnight(uint16_t & minutesPastMidnight)
     CHIP_ERROR err = System::SystemClock().GetClock_RealTimeMS(cTMs);
     if (err != CHIP_NO_ERROR)
     {
-        PRINTF_DEBUG("Unable to get current time - err:%" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("Unable to get current time - err:%d", err);
         return err;
     }
+#ifdef UNIT_TEST
+    const time_t unixEpoch = static_cast<time_t>(cTMs / 1000);
+#else
     time_t unixEpoch = std::chrono::duration_cast<chip::System::Clock::Seconds32>(cTMs).count();
+#endif
 
     // Define a timezone structure and initialize it to the local timezone
     // This will capture any daylight saving time changes

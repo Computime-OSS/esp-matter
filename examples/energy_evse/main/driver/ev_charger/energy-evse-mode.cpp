@@ -18,14 +18,21 @@
 
 #include <iterator>
 
+#ifdef UNIT_TEST
+#include "chip_support.h"
+#include "energy_evse_mode_host.h"
+#else
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <energy-evse-modes.h>
+#endif
 
 using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::EnergyEvseMode;
+#ifndef UNIT_TEST
 using chip::Protocols::InteractionModel::Status;
+#endif
 template <typename T>
-using List              = chip::app::DataModel::List<T>;
+using List = chip::app::DataModel::List<T>;
 using ModeTagStructType = chip::app::Clusters::detail::Structs::ModeTagStruct::Type;
 
 // static std::unique_ptr<EnergyEvseModeDelegate> gEnergyEvseModeDelegate;

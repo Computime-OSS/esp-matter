@@ -51,6 +51,8 @@ public:
         targets_allow_ = v;
     }
 
+    void Init() {}
+
     bool isConnected = false;
 
 private:

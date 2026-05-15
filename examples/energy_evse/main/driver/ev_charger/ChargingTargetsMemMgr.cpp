@@ -1,3 +1,4 @@
+#ifndef UNIT_TEST
 /*
  *
  *    Copyright (c) 2024 Project CHIP Authors
@@ -231,3 +232,5 @@ ChargingTargetsMemMgr::AllocAndCopy(const DataModel::DecodableList<Structs::Char
 
     return CHIP_NO_ERROR;
 }
+
+#endif // UNIT_TEST

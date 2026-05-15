@@ -11,6 +11,8 @@
 
 #include "esp_err.h"
 #include "esp_log.h"
+
+#ifndef UNIT_TEST
 #include "esp_console.h"
 
 #include <nvs_flash.h>
@@ -21,21 +23,27 @@
 #include <common_macros.h>
 #include <app_reset.h>
 
-#include <helpers.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "freertos/semphr.h"
 
 #include <app/server/CommissioningWindowManager.h>
 #include <app/server/Server.h>
+#else
+#include "esp_heap.h"
+#include "nvs_flash.h"
+#include "matterManager_unit_stub.h"
+#endif
+
+#include <helpers.h>
 
 #include "app_cmd.h"
 
-#include "helpers.h"
-
 #include "hardwareControlInterface.h"
 #include "chargerManager.h"
+#ifndef UNIT_TEST
 #include "matterManager.h"
+#endif
 
 extern "C" void app_main()
 {
@@ -69,10 +77,12 @@ extern "C" void app_main()
     DEBUG_CHECKPOINT("Initializing Console Commands ...");
     esp_charger_commands_register();
 
+#ifndef UNIT_TEST
 #if CONFIG_ENABLE_CHIP_SHELL
     esp_matter::console::diagnostics_register_commands();
     esp_matter::console::wifi_register_commands();
     esp_matter::console::factoryreset_register_commands();
     esp_matter::console::init();
+#endif
 #endif
 }

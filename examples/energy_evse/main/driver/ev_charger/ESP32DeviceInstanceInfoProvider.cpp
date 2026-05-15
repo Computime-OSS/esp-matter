@@ -1,15 +1,21 @@
 #include "helpers.h"
-#include "esp_mac.h"
 
+#ifdef UNIT_TEST
+#include "chip_support.h"
+#include "chip_device_layer.h"
+#include "esp_mac.h"
+#include "esp_matter_core.h"
+#include "ESP32DeviceInstanceInfoProvider.h"
+#else
+#include "esp_mac.h"
 #include <esp_matter_core.h>
 #include <esp_mac.h>
 #include <lib/support/CHIPMemString.h>
 #include <platform/CHIPDeviceLayer.h>
 #include <string>
-
 #include <platform/internal/GenericDeviceInstanceInfoProvider.h>
-
 #include "ESP32DeviceInstanceInfoProvider.h"
+#endif
 
 namespace {
 constexpr const char kDeviceVendorName[]             = "Computime Limited";
@@ -54,7 +60,11 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetPartNumber(char * buf, size_t buf
     std::string location(kMaxLen + 1, '\0');
     size_t codeLen = 0;
 
+#ifdef UNIT_TEST
+    CHIP_ERROR err = ConfigurationMgr().GetCountryCode(&location[0], location.size(), codeLen);
+#else
     CHIP_ERROR err = ConfigurationMgr().GetCountryCode(location.data(), location.size(), codeLen);
+#endif
     if (err == CHIP_NO_ERROR)
     {
         location.resize(codeLen);
@@ -88,7 +98,9 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetSerialNumber(char * buf, size_t b
     // Use the Base MAC (or WIFI_STA) as the unique identifier
     esp_err_t err = esp_read_mac(mac, ESP_MAC_WIFI_STA);
     if (err != ESP_OK) {
+#ifndef UNIT_TEST
         ChipLogError(DeviceLayer, "Failed to read MAC address: %d", err);
+#endif
         return CHIP_ERROR_INTERNAL;
     }
 
@@ -98,7 +110,9 @@ CHIP_ERROR CTLEVDeviceInstanceInfoProvider::GetSerialNumber(char * buf, size_t b
 
     // Check if the buffer was large enough
     if (written < 0 || static_cast<size_t>(written) >= bufSize) {
+#ifndef UNIT_TEST
         ChipLogError(DeviceLayer, "Serial number buffer too small (needed %d, got %u)", written + 1, (unsigned int)bufSize);
+#endif
         return CHIP_ERROR_BUFFER_TOO_SMALL;
     }
 
