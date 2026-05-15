@@ -33,6 +33,7 @@ set(EV_DRIVER_SOURCES
     ../../main/driver/ev_charger/PowerTopologyDelegate.cpp
     ../../main/driver/ev_charger/energy-evse-mode.cpp
     ../../main/driver/ev_charger/ESP32DeviceInstanceInfoProvider.cpp
+    ../../main/driver/ev_charger/ChargingTargetsMemMgr.cpp
 )
 
 set(MAIN_SOURCES

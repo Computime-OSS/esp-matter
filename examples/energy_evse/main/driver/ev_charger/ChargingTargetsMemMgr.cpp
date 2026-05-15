@@ -1,4 +1,3 @@
-#ifndef UNIT_TEST
 /*
  *
  *    Copyright (c) 2024 Project CHIP Authors
@@ -19,9 +18,13 @@
 
 #include <cstring>
 
-#include <app-common/zap-generated/cluster-objects.h>
-
+#ifdef UNIT_TEST
+#include "chip_platform.h"
 #include "ChargingTargetsMemMgr.h"
+#else
+#include <app-common/zap-generated/cluster-objects.h>
+#include "ChargingTargetsMemMgr.h"
+#endif
 
 using namespace chip;
 using namespace chip::app;
@@ -233,4 +236,3 @@ ChargingTargetsMemMgr::AllocAndCopy(const DataModel::DecodableList<Structs::Char
     return CHIP_NO_ERROR;
 }
 
-#endif // UNIT_TEST
