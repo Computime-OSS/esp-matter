@@ -35,9 +35,6 @@ template <typename T>
 using List = chip::app::DataModel::List<T>;
 using ModeTagStructType = chip::app::Clusters::detail::Structs::ModeTagStruct::Type;
 
-// static std::unique_ptr<EnergyEvseModeDelegate> gEnergyEvseModeDelegate;
-// static std::unique_ptr<ModeBase::Instance> gEnergyEvseModeInstance;
-
 CHIP_ERROR EnergyEvseModeDelegate::Init()
 {
     return CHIP_NO_ERROR;
