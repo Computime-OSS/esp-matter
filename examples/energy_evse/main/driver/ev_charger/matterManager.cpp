@@ -1,3 +1,35 @@
+#ifdef UNIT_TEST
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <time.h>
+
+#include "helpers.h"
+#include "get_readable_time.h"
+#include "common_macros.h"
+#include "chip_support.h"
+#include "chip_system_layer.h"
+#include "device.h"
+#include "esp_wifi.h"
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_matter.h"
+#include "esp_sntp.h"
+#include "nvs.h"
+#include "chargerManager.h"
+#include "EnergyTimeUtils.h"
+#include "EnergyEvseDelegateImpl.h"
+#include "matterManager_host.h"
+#include "app/clusters/electrical-energy-measurement-server/electrical-energy-measurement-server.h"
+#include "app/server/Server.h"
+
+#include <cmath>
+#include <string>
+
+#undef CHIP_ERROR_FORMAT
+#define CHIP_ERROR_FORMAT "%d"
+#define CHIP_ERR_FMT(e) static_cast<int>((e).AsInteger())
+#else
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -32,6 +64,7 @@
 #include "EnergyEvseDelegateImpl.h"
 
 #include "matterManager.h"
+#endif
 
 using namespace chip;
 using namespace chip::app;
@@ -53,8 +86,27 @@ using namespace esp_matter::endpoint;
 
 using chip::Protocols::InteractionModel::Status;
 
+#ifdef UNIT_TEST
+namespace {
+int g_report_count                    = 0;
+bool unit_test_targets_allow_override = false;
+bool unit_test_targets_allow_value    = true;
+} // namespace
+
+void MatterReportingAttributeChangeCallback(chip::EndpointId endpoint, chip::ClusterId clusterId,
+                                            chip::AttributeId attributeId)
+{
+    (void) endpoint;
+    (void) clusterId;
+    (void) attributeId;
+    ++g_report_count;
+}
+#endif
+
 namespace CT {
 namespace Charger {
+
+using chip::DeviceLayer::ChipDeviceEvent;
 
 /** Alias for ESP-Matter callback private-data pointer (underlying type is still void *, per Espressif API). */
 using EspMatterCallbackOpaquePtr = void *;
@@ -94,7 +146,7 @@ void TryReopenBasicCommissioningWindowIfClosed()
         return;
     }
 
-    constexpr auto kTimeoutSeconds = chip::System::Clock::Seconds16(kCommissioningWindowTimeoutSeconds);
+    constexpr auto kTimeoutSeconds = chip::System::Clock::Seconds32(kCommissioningWindowTimeoutSeconds);
     CHIP_ERROR err = commissionMgr.OpenBasicCommissioningWindow(
         kTimeoutSeconds, chip::CommissioningWindowAdvertisement::kAllSupported);
     if (err != CHIP_NO_ERROR)
@@ -501,6 +553,11 @@ void MatterManager::UpdateSession(int64_t currentEnergy)
 
 bool MatterManager::IsChargingAllowedByTargets(void)
 {
+#ifdef UNIT_TEST
+    if (unit_test_targets_allow_override) {
+        return unit_test_targets_allow_value;
+    }
+#endif
     bool allowed = true;
     time_t now = time(nullptr);
 
@@ -615,16 +672,24 @@ CHIP_ERROR MatterManager::SendCumulativeEnergyReading(int64_t aCumulativeEnergyI
         PRINTF_DEBUG("GetEpochTS returned error getting timestamp %" CHIP_ERROR_FORMAT, err.Format());
 
         // use systemTime as a fallback
+#ifdef UNIT_TEST
+        uint64_t nowMS = static_cast<uint64_t>(chip::Server::GetInstance().TimeSinceInit());
+#else
         System::Clock::Milliseconds64 system_time_ms =
             std::chrono::duration_cast<System::Clock::Milliseconds64>(chip::Server::GetInstance().TimeSinceInit());
         uint64_t nowMS = static_cast<uint64_t>(system_time_ms.count());
+#endif
 
         energyImported.endSystime.SetValue(nowMS);
         energyExported.endSystime.SetValue(nowMS);
     }
 
     EndpointId mid = EPM_dg.GetEndpointId();
+#ifdef UNIT_TEST
+    chip::DeviceLayer::SystemLayer().ScheduleLambda([mid, energyImported, energyExported]() {
+#else
     chip::DeviceLayer::SystemLayer().ScheduleLambda([mid, &energyImported, &energyExported]() {
+#endif
         // call the SDK to update attributes and generate an event
         if (!NotifyCumulativeEnergyMeasured(mid, MakeOptional(energyImported), MakeOptional(energyExported)))
         {
@@ -643,9 +708,13 @@ void MatterManager::ReportAttributeChangeToMatter(EndpointId endpoint, ClusterId
     }
 
     // centralized the notification calls to matter stack
+#ifdef UNIT_TEST
+    MatterReportingAttributeChangeCallback(endpoint, clusterId, attributeId);
+#else
     chip::DeviceLayer::SystemLayer().ScheduleLambda([endpoint, clusterId, attributeId]() {
         MatterReportingAttributeChangeCallback(endpoint, clusterId, attributeId);
     });
+#endif
 }
 
 bool MatterManager::GetChargingEnabled()
@@ -653,6 +722,43 @@ bool MatterManager::GetChargingEnabled()
     // Question: is charging enabled depends on SupplyState??
     return (EE_dg.GetSupplyState() == SupplyStateEnum::kChargingEnabled);
 }
+
+#ifdef UNIT_TEST
+int & MatterManager::ReportAttributeCallCount() { return g_report_count; }
+
+void MatterManager::resetForTest()
+{
+    isConnected                      = true;
+    device_node                      = nullptr;
+    g_report_count                   = 0;
+    unit_test_targets_allow_override = false;
+    unit_test_targets_allow_value    = true;
+    chip::Server::GetInstance().ResetForTest();
+    chip::app::Clusters::ElectricalEnergyMeasurement::unit_test_measurement_reset();
+    chip::app::Clusters::ElectricalEnergyMeasurement::NotifyCumulativeEnergyFailForTest() = false;
+    unit_test_nvs_reset();
+    DeviceLayer::SystemLayer().ResetForTest();
+
+    EE_dg.SetFaultState(FaultStateEnum::kNoError);
+    EE_dg.SetSupplyState(SupplyStateEnum::kDisabled);
+    EE_dg.SetState(StateEnum::kNotPluggedIn);
+}
+
+void MatterManager::SetChargingEnabledForTest(bool enabled)
+{
+    if (enabled) {
+        EE_dg.EnableCharging(DataModel::Nullable<uint32_t>(), 7000, 16000);
+    } else {
+        EE_dg.Disable();
+    }
+}
+
+void MatterManager::SetTargetsAllowForTest(bool allowed)
+{
+    unit_test_targets_allow_override = true;
+    unit_test_targets_allow_value    = allowed;
+}
+#endif
 
 } // namespace Charger
 } // namespace CT
@@ -684,11 +790,20 @@ void PowerSourceDelegate::AddCustomAttributes()
     power_source::attribute::create_wired_maximum_current(cluster, 0, 6'000, 32'000);
 }
 
-void PowerSourceDelegate::AddCustomFeatures(Feature aFeature)
+void PowerSourceDelegate::AddCustomFeatures(
+#ifdef UNIT_TEST
+    BitMask<Feature, uint32_t> aFeature)
+#else
+    Feature aFeature)
+#endif
 {
     using namespace esp_matter::cluster::power_source;
 
+#ifndef UNIT_TEST
     mFeature.Set(aFeature);
+#else
+    mFeature = aFeature;
+#endif
 
     esp_matter::cluster_t * cluster = esp_matter::cluster::get(mEndpointId, PowerSource::Id);
 

@@ -22,6 +22,7 @@ include_directories(../../main/driver/ev_charger/include)
 file(GLOB LOCAL_SOURCES *.cpp *.c)
 file(GLOB UNIT_DRIVER_SOURCES ../../main/driver/unit/*.cpp)
 file(GLOB MOCK_SOURCES mock/*.cpp unit_sources/*.cpp)
+list(REMOVE_ITEM MOCK_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/mock/matterManager.cpp")
 
 set(EV_DRIVER_SOURCES
     ../../main/driver/ev_charger/app_cmd.cpp
@@ -38,6 +39,7 @@ set(EV_DRIVER_SOURCES
     ../../main/driver/ev_charger/ElectricalPowerMeasurementDelegate.cpp
     ../../main/driver/ev_charger/EnergyEvseDelegateImpl.cpp
     ../../main/driver/ev_charger/EnergyEvseTargetsStore.cpp
+    ../../main/driver/ev_charger/matterManager.cpp
 )
 
 set(MAIN_SOURCES

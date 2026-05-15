@@ -163,6 +163,8 @@ public:
 
     void Clear() { mHasValue = false; }
 
+    void ClearValue() { mHasValue = false; }
+
 private:
     bool mHasValue = false;
     T mValue{};
@@ -297,6 +299,12 @@ inline SystemClock & SystemClock() { return SystemClockInstance(); }
     } while (0)
 
 inline const char * ErrorStr(const ChipError &) { return "CHIP_ERROR"; }
+
+template <typename Enum>
+constexpr std::underlying_type_t<Enum> to_underlying(Enum e)
+{
+    return static_cast<std::underlying_type_t<Enum>>(e);
+}
 
 } // namespace chip
 

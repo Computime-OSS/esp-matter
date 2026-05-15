@@ -14,6 +14,7 @@ namespace {
 
 void reset_harness(void)
 {
+    MatterManager::GetInstance().isConnected = true;
     MatterManager::ReportAttributeCallCount() = 0;
 }
 

@@ -42,6 +42,8 @@ struct List {
 
     T * begin() { return const_cast<T *>(data); }
     T * end() { return const_cast<T *>(data) + count; }
+
+    void reduce_size(size_t n) { count = n; }
 };
 
 template <typename T>

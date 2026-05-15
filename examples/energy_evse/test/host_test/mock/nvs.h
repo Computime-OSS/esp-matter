@@ -24,6 +24,7 @@ esp_err_t nvs_open(const char *name, nvs_open_mode_t mode, nvs_handle_t *out_han
 esp_err_t nvs_open_from_partition(const char *partition, const char *name, nvs_open_mode_t mode, nvs_handle_t *out_handle);
 esp_err_t nvs_set_u8(nvs_handle_t handle, const char *key, uint8_t value);
 esp_err_t nvs_get_u8(nvs_handle_t handle, const char *key, uint8_t *out_value);
+esp_err_t nvs_get_i64(nvs_handle_t handle, const char *key, int64_t *out_value);
 esp_err_t nvs_set_i64(nvs_handle_t handle, const char *key, int64_t value);
 esp_err_t nvs_set_i32(nvs_handle_t handle, const char *key, int32_t value);
 esp_err_t nvs_commit(nvs_handle_t handle);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app-common/zap-generated/cluster-objects.h"
 #include "chip_support.h"
 
 #include <cstring>
@@ -25,25 +26,6 @@ inline CHIP_ERROR CopyCharSpanToMutableCharSpan(CharSpan src, MutableCharSpan & 
 }
 
 namespace app {
-namespace DataModel {
-template <typename T>
-struct List {
-    T * data = nullptr;
-    size_t count = 0;
-    size_t capacity = 0;
-
-    List() = default;
-    List(T * d, size_t s) : data(d), count(s), capacity(s) {}
-
-    size_t size() const { return count; }
-    T * begin() { return data; }
-    T * end() { return data + count; }
-    const T * begin() const { return data; }
-    const T * end() const { return data + count; }
-    void reduce_size(size_t n) { count = n; }
-};
-} // namespace DataModel
-
 namespace Clusters {
 namespace detail {
 namespace Structs {

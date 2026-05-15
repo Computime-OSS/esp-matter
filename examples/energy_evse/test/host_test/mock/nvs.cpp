@@ -82,6 +82,20 @@ esp_err_t nvs_get_u8(nvs_handle_t handle, const char *key, uint8_t *out_value)
     return ESP_OK;
 }
 
+esp_err_t nvs_get_i64(nvs_handle_t handle, const char *key, int64_t *out_value)
+{
+    if (key == nullptr || out_value == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    auto & store = StoreForHandle(handle);
+    auto it      = store.i64.find(key);
+    if (it == store.i64.end()) {
+        return ESP_ERR_NOT_FOUND;
+    }
+    *out_value = it->second;
+    return ESP_OK;
+}
+
 esp_err_t nvs_set_i64(nvs_handle_t handle, const char *key, int64_t value)
 {
     if (key == nullptr) {

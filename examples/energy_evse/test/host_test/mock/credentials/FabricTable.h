@@ -1,6 +1,6 @@
 #pragma once
 
-#include "chip_fabric_table.h"
+#include "chip_support.h"
 
 #include <cstdint>
 #include <vector>
@@ -16,6 +16,10 @@ public:
         virtual ~Delegate() = default;
         virtual void OnFabricRemoved(const FabricTable & fabricTable, FabricIndex fabricIndex) = 0;
     };
+
+    unsigned FabricCount() const { return mFabricCount; }
+
+    void SetFabricCountForTest(unsigned count) { mFabricCount = count; }
 
     CHIP_ERROR AddFabricDelegate(Delegate * delegate)
     {
@@ -36,6 +40,7 @@ public:
     }
 
 private:
+    unsigned mFabricCount = 0;
     std::vector<Delegate *> mDelegates;
 };
 

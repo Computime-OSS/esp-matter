@@ -74,6 +74,7 @@ void reset_test_harness(void)
 {
     DeviceLayer::SystemLayer().ResetForTest();
     unit_test_log_event_fail(false);
+    MatterManager::GetInstance().isConnected = true;
     MatterManager::ReportAttributeCallCount() = 0;
     System::SystemClockInstance().SetRealTimeMsForTest(1'700'000'000LL * 1000);
 }
