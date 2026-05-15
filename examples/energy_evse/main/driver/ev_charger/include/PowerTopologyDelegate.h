@@ -65,7 +65,7 @@ public:
     CHIP_ERROR InitializeCluster();
     void ShutdownCluster();
 
-    PowerTopologyDelegate * GetDelegate() { return mDelegate; };
+    PowerTopologyDelegate * GetDelegate();
 
 private:
     PowerTopologyDelegate * mDelegate;

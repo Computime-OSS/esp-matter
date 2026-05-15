@@ -134,3 +134,8 @@ void PowerTopologyInstance::ShutdownCluster()
 {
     Instance::Shutdown();
 }
+
+PowerTopologyDelegate * PowerTopologyInstance::GetDelegate()
+{
+    return mDelegate;
+}

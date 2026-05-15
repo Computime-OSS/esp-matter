@@ -59,11 +59,7 @@ inline constexpr bool kSupportDischargingV2x = false;
 class MatterManager
 {
 public:
-    static MatterManager &GetInstance()
-    {
-        static MatterManager instance;
-        return instance;
-    }
+    static MatterManager & GetInstance();
 
     MatterManager(MatterManager const &) = delete;
     void operator=(MatterManager const &) = delete;
@@ -96,8 +92,6 @@ public:
     CHIP_ERROR SendCumulativeEnergyReading(int64_t aCumulativeEnergyImported, int64_t aCumulativeEnergyExported);
 
     static void ReportAttributeChangeToMatter(chip::EndpointId endpoint, chip::ClusterId clusterId, chip::AttributeId attributeId);
-
-    // static void SendEventToMatter(EndpointId endpoint, uint32_t eventId, void* data);
 
     /* Delegates external APIs*/
     bool GetChargingEnabled();

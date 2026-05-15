@@ -31,7 +31,7 @@ class ElectricalPowerMeasurementDelegate : public ElectricalPowerMeasurement::De
 public:
 
     void SetupDelegate(EndpointId id);
-    EndpointId GetEndpointId() const { return mEndpointId; }
+    EndpointId GetEndpointId() const;
     void AddCustomAttributes() const;
     void AddCustomFeatures(Feature aFeature);
     void LateSetupAfterMatter() const;
@@ -42,7 +42,7 @@ public:
     static constexpr uint8_t kDefaultNumberOfMeasurementTypes = 1;
 
     // Attribute Accessors
-    PowerModeEnum GetPowerMode() override { return mPowerMode; }
+    PowerModeEnum GetPowerMode() override;
     uint8_t GetNumberOfMeasurementTypes() override;
 
     /* These functions are called by the ReadAttribute handler to iterate through lists
@@ -67,19 +67,19 @@ public:
     CHIP_ERROR GetHarmonicPhasesByIndex(uint8_t, Structs::HarmonicMeasurementStruct::Type &) override;
     CHIP_ERROR EndHarmonicPhasesRead() override;
 
-    DataModel::Nullable<int64_t> GetVoltage() override { return mVoltage; }
-    DataModel::Nullable<int64_t> GetActiveCurrent() override { return mActiveCurrent; }
-    DataModel::Nullable<int64_t> GetReactiveCurrent() override { return mReactiveCurrent; }
-    DataModel::Nullable<int64_t> GetApparentCurrent() override { return mApparentCurrent; }
-    DataModel::Nullable<int64_t> GetActivePower() override { return mActivePower; }
-    DataModel::Nullable<int64_t> GetReactivePower() override { return mReactivePower; }
-    DataModel::Nullable<int64_t> GetApparentPower() override { return mApparentPower; }
-    DataModel::Nullable<int64_t> GetRMSVoltage() override { return mRMSVoltage; }
-    DataModel::Nullable<int64_t> GetRMSCurrent() override { return mRMSCurrent; }
-    DataModel::Nullable<int64_t> GetRMSPower() override { return mRMSPower; }
-    DataModel::Nullable<int64_t> GetFrequency() override { return mFrequency; }
-    DataModel::Nullable<int64_t> GetPowerFactor() override { return mPowerFactor; }
-    DataModel::Nullable<int64_t> GetNeutralCurrent() override { return mNeutralCurrent; };
+    DataModel::Nullable<int64_t> GetVoltage() override;
+    DataModel::Nullable<int64_t> GetActiveCurrent() override;
+    DataModel::Nullable<int64_t> GetReactiveCurrent() override;
+    DataModel::Nullable<int64_t> GetApparentCurrent() override;
+    DataModel::Nullable<int64_t> GetActivePower() override;
+    DataModel::Nullable<int64_t> GetReactivePower() override;
+    DataModel::Nullable<int64_t> GetApparentPower() override;
+    DataModel::Nullable<int64_t> GetRMSVoltage() override;
+    DataModel::Nullable<int64_t> GetRMSCurrent() override;
+    DataModel::Nullable<int64_t> GetRMSPower() override;
+    DataModel::Nullable<int64_t> GetFrequency() override;
+    DataModel::Nullable<int64_t> GetPowerFactor() override;
+    DataModel::Nullable<int64_t> GetNeutralCurrent() override;
 
     // Internal Application API to set attribute values
     CHIP_ERROR SetPowerMode(PowerModeEnum);
@@ -135,7 +135,7 @@ public:
     CHIP_ERROR InitializeCluster();
     void ShutdownCluster();
 
-    ElectricalPowerMeasurementDelegate * GetDelegate() { return mDelegate; };
+    ElectricalPowerMeasurementDelegate * GetDelegate();
 
 private:
     ElectricalPowerMeasurementDelegate * mDelegate;

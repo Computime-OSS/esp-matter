@@ -24,7 +24,7 @@ class EvseSession
 public:
     EvseSession() = default;
 
-    void SetEndpointId(EndpointId aEndpoint) { mEndpointId = aEndpoint; }
+    void SetEndpointId(EndpointId aEndpoint);
 
     void StartSession(int64_t currentEnergy);
     void StopSession(int64_t currentEnergy);
@@ -223,7 +223,7 @@ public:
 
     Status SendFaultEvent(FaultStateEnum newFaultState);
 
-    EvseTargetsDelegate * GetEvseTargetsDelegate() { return &mEvseTargetsDelegate; }
+    EvseTargetsDelegate * GetEvseTargetsDelegate();
 
 private:
     /** Advances @p dayOfWeekMap to the next day when the current day has no matching target. */

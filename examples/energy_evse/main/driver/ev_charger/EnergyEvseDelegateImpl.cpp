@@ -787,6 +787,16 @@ DataModel::Nullable<int64_t> EnergyEvseDelegate::GetSessionEnergyDischarged()
     return mSession.mSessionEnergyDischarged;
 }
 
+void EvseSession::SetEndpointId(EndpointId aEndpoint)
+{
+    mEndpointId = aEndpoint;
+}
+
+EvseTargetsDelegate * EnergyEvseDelegate::GetEvseTargetsDelegate()
+{
+    return &mEvseTargetsDelegate;
+}
+
 void EvseSession::StartSession(int64_t currentEnergy)
 {
     /* Get Timestamp */

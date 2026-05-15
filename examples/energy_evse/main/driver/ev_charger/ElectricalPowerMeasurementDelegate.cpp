@@ -55,7 +55,87 @@ void ElectricalPowerMeasurementInstance::ShutdownCluster()
     Instance::Shutdown();
 }
 
+ElectricalPowerMeasurementDelegate * ElectricalPowerMeasurementInstance::GetDelegate()
+{
+    return mDelegate;
+}
+
 // --------------- Internal Attribute Set APIs
+
+EndpointId ElectricalPowerMeasurementDelegate::GetEndpointId() const
+{
+    return mEndpointId;
+}
+
+PowerModeEnum ElectricalPowerMeasurementDelegate::GetPowerMode()
+{
+    return mPowerMode;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetVoltage()
+{
+    return mVoltage;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetActiveCurrent()
+{
+    return mActiveCurrent;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetReactiveCurrent()
+{
+    return mReactiveCurrent;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetApparentCurrent()
+{
+    return mApparentCurrent;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetActivePower()
+{
+    return mActivePower;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetReactivePower()
+{
+    return mReactivePower;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetApparentPower()
+{
+    return mApparentPower;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetRMSVoltage()
+{
+    return mRMSVoltage;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetRMSCurrent()
+{
+    return mRMSCurrent;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetRMSPower()
+{
+    return mRMSPower;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetFrequency()
+{
+    return mFrequency;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetPowerFactor()
+{
+    return mPowerFactor;
+}
+
+DataModel::Nullable<int64_t> ElectricalPowerMeasurementDelegate::GetNeutralCurrent()
+{
+    return mNeutralCurrent;
+}
 
 void ElectricalPowerMeasurementDelegate::SetupDelegate(EndpointId id)
 {
