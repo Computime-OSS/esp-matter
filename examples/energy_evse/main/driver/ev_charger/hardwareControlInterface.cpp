@@ -2,9 +2,16 @@
 
 #include <cmath>
 
+#ifndef UNIT_TEST
 #include "esp_log.h"
 #include "esp_timer.h"
 #include <esp_random.h>
+#else
+#include <cstring>
+#include "esp_log.h"
+#include "esp_random.h"
+#include "esp_timer.h"
+#endif
 
 namespace CT {
 namespace Charger {
@@ -311,6 +318,40 @@ esp_err_t HardwareControlInterface::setParam(HwControlParam_t p, int64_t v)
     }
     return ESP_OK;
 }
+
+#ifdef UNIT_TEST
+void HardwareControlInterface::resetForTest()
+{
+    stopMeterTimer();
+    std::lock_guard<std::mutex> lock(mutex_);
+    state_ = {};
+    state_.limit = { .current_mA = kBaseCurrent_mA };
+    is_paused_ = false;
+    is_charging_ = false;
+    is_EV_drawing_ = false;
+    faultCode_ = 0;
+    inited_ = false;
+    timer_handle_ = nullptr;
+    unit_test_esp_timer_reset();
+    unit_test_esp_random_next() = 500U;
+}
+
+void HardwareControlInterface::setChargingForTest(bool charging)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    is_charging_ = charging;
+}
+
+void HardwareControlInterface::invokeMeterTimerForTest()
+{
+    onMeterTimer();
+}
+
+void HardwareControlInterface::InvokeMeterTimerCallbackForTest(void *callbackContext)
+{
+    meterTimerCallback(callbackContext);
+}
+#endif
 
 } // namespace Charger
 } // namespace CT

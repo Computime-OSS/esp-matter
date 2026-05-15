@@ -113,6 +113,13 @@ public:
     esp_err_t getParam(HwControlParam_t p, int64_t *out) const;
     esp_err_t setParam(HwControlParam_t p, int64_t v);
 
+#ifdef UNIT_TEST
+    void resetForTest();
+    void setChargingForTest(bool charging);
+    void invokeMeterTimerForTest();
+    static void InvokeMeterTimerCallbackForTest(void *callbackContext);
+#endif
+
 private:
     HardwareControlInterface() = default;
 

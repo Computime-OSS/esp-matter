@@ -11,7 +11,7 @@
 #include "hardwareControlInterface.h"
 #include "matterManager.h"
 #else
-#include "hardwareControlInterface_unit_stub.h"
+#include "hardwareControlInterface.h"
 #include "matterManager_unit_stub.h"
 typedef void *SemaphoreHandle_t;
 #endif
