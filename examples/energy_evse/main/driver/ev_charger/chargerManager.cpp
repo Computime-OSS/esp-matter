@@ -23,10 +23,6 @@ using namespace chip::app;
 #endif
 using namespace CT::Charger;
 
-namespace {
-uint32_t g_finishingTimeCnt200ms = 0;
-} // namespace
-
 ChargerStatus_t ChargerManager::findNextChargerStatus(ChargerStatus_t current) 
 {
     ChargerStatus_t next = current;

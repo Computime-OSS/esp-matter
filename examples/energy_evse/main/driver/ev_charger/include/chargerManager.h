@@ -101,6 +101,7 @@ public:
     } uiux;
 
     uint32_t thread_ticks = 0;
+    uint32_t g_finishingTimeCnt200ms = 0;
 
     std::atomic<bool> state_action_run_;
     std::atomic<bool> inAuthProcess_;
