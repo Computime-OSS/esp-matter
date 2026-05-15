@@ -136,6 +136,29 @@ struct DecodableType {
 
 } // namespace Structs
 } // namespace EnergyEvse
+
+namespace DeviceEnergyManagement {
+
+enum class AdjustmentCauseEnum : uint8_t { kLocalOptimization = 0, kGridOptimization = 1, kUnknownEnumValue = 0xFF };
+enum class CauseEnum : uint8_t { kNormalCompletion = 0, kCancelled = 1, kUserOptOut = 2 };
+
+namespace Structs {
+
+struct SlotAdjustmentStruct {
+    struct DecodableType {
+        uint16_t slotIndex = 0;
+    };
+};
+
+struct ConstraintsStruct {
+    struct DecodableType {
+        int64_t power = 0;
+    };
+};
+
+} // namespace Structs
+} // namespace DeviceEnergyManagement
+
 } // namespace Clusters
 } // namespace app
 } // namespace chip

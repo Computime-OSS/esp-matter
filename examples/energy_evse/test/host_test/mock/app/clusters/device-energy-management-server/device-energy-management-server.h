@@ -24,13 +24,11 @@ enum class Feature : uint32_t {
 enum class ESATypeEnum : uint8_t { kEvse = 0, kSpaceHeater = 1, kUnknownEnumValue = 0xFF };
 enum class ESAStateEnum : uint8_t { kOffline = 0, kOnline = 1, kPowerAdjustActive = 2, kPaused = 3, kUnknownEnumValue = 0xFF };
 enum class OptOutStateEnum : uint8_t { kNoOptOut = 0, kLocalOptOut = 1, kGridOptOut = 2, kOptOut = 3 };
-enum class AdjustmentCauseEnum : uint8_t { kLocalOptimization = 0, kGridOptimization = 1, kUnknownEnumValue = 0xFF };
 enum class PowerAdjustReasonEnum : uint8_t {
     kNoAdjustment = 0,
     kLocalOptimizationAdjustment = 1,
     kGridOptimizationAdjustment = 2,
 };
-enum class CauseEnum : uint8_t { kNormalCompletion = 0, kCancelled = 1, kUserOptOut = 2 };
 enum class ForecastUpdateReasonEnum : uint8_t {
     kInternalOptimization = 0,
     kLocalOptimization = 1,
@@ -50,16 +48,6 @@ struct ForecastStruct {
         uint32_t startTime = 0;
         uint32_t endTime = 0;
         ForecastUpdateReasonEnum forecastUpdateReason = ForecastUpdateReasonEnum::kInternalOptimization;
-    };
-};
-struct SlotAdjustmentStruct {
-    struct DecodableType {
-        uint16_t slotIndex = 0;
-    };
-};
-struct ConstraintsStruct {
-    struct DecodableType {
-        int64_t power = 0;
     };
 };
 } // namespace Structs
