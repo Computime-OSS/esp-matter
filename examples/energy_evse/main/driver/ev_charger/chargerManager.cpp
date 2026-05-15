@@ -13,6 +13,7 @@
 #include "charger_uiux_handler.h"
 #include "chargerManager.h"
 #include "hardwareControlInterface.h"
+#include "charger_session_math.h"
 
 using namespace chip::app;
 using namespace CT::Charger;
@@ -382,13 +383,15 @@ void ChargerManager::onSessionEnd()
     
     // Record session end time
     session.stopTime = esp_timer_get_time();
-    session.timeElapsed = (session.stopTime - session.startTime) / 1000000LL;
+    session.timeElapsed =
+        session_time_elapsed_sec_from_monotonic_us(session.stopTime, session.startTime);
 
     int64_t _energy = pHwControl->getMeter().energy_mWh;
     int32_t _current = pHwControl->getMeter().current_mA;
     int32_t _voltage = pHwControl->getMeter().voltage_mV;
 
-    session.chargingData.energyDelivered_mWh = _energy - session.chargingData.energyOffsetmWh;
+    session.chargingData.energyDelivered_mWh =
+        session_energy_delivered_mWh(_energy, static_cast<int64_t>(session.chargingData.energyOffsetmWh));
     MatterManager::GetInstance().StopSession(_energy);
 
     // print session summary
@@ -524,7 +527,8 @@ void ChargerManager::runExecChargingLikeCase()
         onSessionStart();
     }
 
-    session.timeElapsed = (esp_timer_get_time() - session.startTime) / 1000000;
+    session.timeElapsed =
+        session_time_elapsed_sec_from_monotonic_us(esp_timer_get_time(), session.startTime);
     PRINTF_DEBUG("Time Elapsed: %.2f sec", session.timeElapsed * 1.0);
 
     if (onTimeEqual_Second(1)) {
@@ -658,7 +662,7 @@ std::string ChargerManager::statusToString(ChargerStatus_t status) const {
 
 bool ChargerManager::onTimeEqual_Second(uint32_t sec)
 {
-    return (thread_ticks % (sec * 1000 / CHARGER_MGR_THREAD_TICKS) == 0);
+    return charger_thread_tick_aligns_interval(thread_ticks, sec, CHARGER_MGR_THREAD_TICKS);
 }
 
 ChargerManager::ChargerManager()

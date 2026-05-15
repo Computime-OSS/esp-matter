@@ -1,5 +1,7 @@
 #include "unity.h"
+
 #include "calculate_energy.h"
+#include "charger_session_math.h"
 #include "get_readable_time.h"
 
 void setUp(void) {
@@ -36,6 +38,23 @@ void test_epoch_86400(void) {
     TEST_ASSERT_EQUAL_STRING_MESSAGE("02/01/2000 00:00", buf, "Expected " "02/01/2000 00:00");
 }
 
+void test_session_energy_delivered_mWh(void) {
+    uint32_t delivered =
+        CT::Charger::session_energy_delivered_mWh(12500, static_cast<int64_t>(2500));
+    TEST_ASSERT_EQUAL_UINT32(10000u, delivered);
+}
+
+void test_session_time_elapsed_sec_from_monotonic_us(void) {
+    int64_t elapsed = CT::Charger::session_time_elapsed_sec_from_monotonic_us(10500000LL, 2500000LL);
+    TEST_ASSERT_EQUAL_INT64(8LL, elapsed);
+}
+
+void test_charger_thread_tick_aligns_interval(void) {
+    TEST_ASSERT_TRUE(CT::Charger::charger_thread_tick_aligns_interval(0u, 1u, 200u));
+    TEST_ASSERT_FALSE(CT::Charger::charger_thread_tick_aligns_interval(4u, 1u, 200u));
+    TEST_ASSERT_TRUE(CT::Charger::charger_thread_tick_aligns_interval(5u, 1u, 200u));
+}
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
 
@@ -43,7 +62,9 @@ int main(int argc, char **argv) {
     RUN_TEST(test_calculate_energy_zero_amps);
     RUN_TEST(test_epoch_zero);
     RUN_TEST(test_epoch_86400);
-
+    RUN_TEST(test_session_energy_delivered_mWh);
+    RUN_TEST(test_session_time_elapsed_sec_from_monotonic_us);
+    RUN_TEST(test_charger_thread_tick_aligns_interval);
 
     return UNITY_END();
 }
