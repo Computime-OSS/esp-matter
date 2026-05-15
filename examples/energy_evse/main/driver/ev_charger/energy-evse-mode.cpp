@@ -84,22 +84,3 @@ CHIP_ERROR EnergyEvseModeDelegate::GetModeTagsByIndex(uint8_t modeIndex, List<Mo
 
     return CHIP_NO_ERROR;
 }
-
-// ModeBase::Instance * EnergyEvseMode::Instance()
-// {
-//     return gEnergyEvseModeInstance.get();
-// }
-
-// void EnergyEvseMode::Shutdown()
-// {
-//     gEnergyEvseModeInstance.reset();
-//     gEnergyEvseModeDelegate.reset();
-// }
-
-// void emberAfEnergyEvseModeClusterInitCallback(chip::EndpointId endpointId)
-// {
-//     VerifyOrDie(!gEnergyEvseModeDelegate && !gEnergyEvseModeInstance);
-//     gEnergyEvseModeDelegate = std::make_unique<EnergyEvseMode::EnergyEvseModeDelegate>();
-//     gEnergyEvseModeInstance = std::make_unique<ModeBase::Instance>(gEnergyEvseModeDelegate.get(), 0x1, EnergyEvseMode::Id, 0);
-//     gEnergyEvseModeInstance->Init();
-// }

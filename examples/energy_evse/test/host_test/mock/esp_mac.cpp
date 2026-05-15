@@ -1,8 +1,17 @@
 #include "esp_mac.h"
 
+bool & unit_test_esp_read_mac_fail(void)
+{
+    static bool fail = false;
+    return fail;
+}
+
 esp_err_t esp_read_mac(uint8_t *mac, int type)
 {
     (void) type;
+    if (unit_test_esp_read_mac_fail()) {
+        return ESP_FAIL;
+    }
     if (mac == nullptr) {
         return ESP_ERR_INVALID_ARG;
     }
