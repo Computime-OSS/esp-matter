@@ -11,11 +11,10 @@ using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::EnergyEvse;
 using namespace chip::app::Clusters::EnergyEvse::Structs;
 
-static ChargingTargetStruct::Type MakeTarget(uint16_t minutes, uint8_t day = 0)
+static ChargingTargetStruct::Type MakeTarget(uint16_t minutes)
 {
     ChargingTargetStruct::Type target{};
     target.targetTimeMinutesPastMidnight = minutes;
-    target.dayOfWeek                     = day;
     return target;
 }
 
@@ -67,8 +66,8 @@ static void test_alloc_and_copy_from_daily_buffer(void)
 {
     ChargingTargetsMemMgr mgr;
     mgr.PrepareDaySchedule(2);
-    mgr.AddChargingTarget(MakeTarget(100, 1));
-    mgr.AddChargingTarget(MakeTarget(200, 2));
+    mgr.AddChargingTarget(MakeTarget(100));
+    mgr.AddChargingTarget(MakeTarget(200));
 
     TEST_ASSERT_EQUAL(CHIP_NO_ERROR, mgr.AllocAndCopy());
     TEST_ASSERT_EQUAL(2, mgr.GetNumDailyChargingTargets());

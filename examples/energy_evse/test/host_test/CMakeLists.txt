@@ -36,6 +36,8 @@ set(EV_DRIVER_SOURCES
     ../../main/driver/ev_charger/ChargingTargetsMemMgr.cpp
     ../../main/driver/ev_charger/DeviceEnergyManagementDelegateImpl.cpp
     ../../main/driver/ev_charger/ElectricalPowerMeasurementDelegate.cpp
+    ../../main/driver/ev_charger/EnergyEvseDelegateImpl.cpp
+    ../../main/driver/ev_charger/EnergyEvseTargetsStore.cpp
 )
 
 set(MAIN_SOURCES

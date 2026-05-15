@@ -1,3 +1,27 @@
+#ifdef UNIT_TEST
+#include "helpers.h"
+#include "get_readable_time.h"
+#include "chip_support.h"
+#include "chip_im_status.h"
+#include "chip_logging.h"
+#include "chip_system_layer.h"
+#include "esp_matter_evse.h"
+#include "matterManager.h"
+#include "chargerManager.h"
+#include "EnergyTimeUtils.h"
+#include "EnergyEvseTargetsStore.h"
+#include "EnergyEvseDelegateImpl.h"
+#include "app/EventLogging.h"
+#include "app/MessageDef/StatusIB.h"
+
+#include <algorithm>
+#include <cstddef>
+#include <string>
+
+#undef CHIP_ERROR_FORMAT
+#define CHIP_ERROR_FORMAT "%d"
+#define CHIP_ERR_FMT(e) static_cast<int>((e).AsInteger())
+#else
 #include <app/EventLogging.h>
 #include <cstddef>
 #include <string>
@@ -12,6 +36,8 @@
 #include "EnergyEvseTargetsStore.h"
 
 #include "EnergyEvseDelegateImpl.h"
+#define CHIP_ERR_FMT(e) (e).Format()
+#endif
 
 using namespace chip;
 using namespace chip::app;
@@ -23,6 +49,9 @@ using namespace chip::app::Clusters::EnergyEvse::Attributes;
 using namespace CT::Charger;
 
 using chip::app::LogEvent;
+using chip::app::StatusIB;
+
+using std::min;
 
 namespace {
 
@@ -107,9 +136,18 @@ void EnergyEvseDelegate::AddCustomAttributes()
     energy_evse::attribute::create_user_maximum_charge_current(cluster, ChargerManager::Controller().config.currentLimit_HW);
 }
 
-void EnergyEvseDelegate::AddCustomFeatures(Feature aFeature)
+void EnergyEvseDelegate::AddCustomFeatures(
+#ifndef UNIT_TEST
+    Feature aFeature)
+#else
+    BitMask<Feature, uint32_t> aFeature)
+#endif
 {
+#ifndef UNIT_TEST
     mFeature.Set(aFeature);
+#else
+    mFeature = aFeature;
+#endif
 
     esp_matter::cluster_t * cluster =
         esp_matter::cluster::get(GetEndpointId(), Clusters::EnergyEvse::Id);
@@ -336,7 +374,7 @@ Status EnergyEvseDelegate::ClearTargets()
     err = targets->ClearTargets();
     if (err != CHIP_NO_ERROR)
     {
-        PRINTF_DEBUG("Failed to clear Evse targets: %" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("Failed to clear Evse targets: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
         return Status::Failure;
     }
 
@@ -760,7 +798,7 @@ void EvseSession::StartSession(int64_t currentEnergy)
     {
         /* Note that the error will be also be logged inside GetErrorTS() -
          * adding context here to help debugging */
-        PRINTF_DEBUG("EVSE: Unable to get current time when starting session - err:%" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("EVSE: Unable to get current time when starting session - err:%" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
         return;
     }
     mStartTime = chipEpoch;
@@ -807,7 +845,7 @@ void EvseSession::RecalculateSessionDuration()
     {
         /* Note that the error will be also be logged inside GetErrorTS() -
          * adding context here to help debugging */
-        PRINTF_DEBUG("EVSE: Unable to get current time when updating session duration - err:%" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("EVSE: Unable to get current time when updating session duration - err:%" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
         return;
     }
 
@@ -972,7 +1010,7 @@ Status EnergyEvseDelegate::SendFaultEvent(FaultStateEnum newFaultState)
         EventNumber eventNumber;
         CHIP_ERROR error = LogEvent(event, mEndpointId, eventNumber);
         if (CHIP_NO_ERROR != error) {
-            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, error.Format());
+            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(error));
         }
     });
 
@@ -1068,7 +1106,7 @@ Status EnergyEvseDelegate::SendEVConnectedEvent()
         EventNumber eventNumber;
         CHIP_ERROR error = LogEvent(event, mEndpointId, eventNumber);
         if (CHIP_NO_ERROR != error) {
-            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, error.Format());
+            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(error));
         }
     });
 
@@ -1095,7 +1133,7 @@ Status EnergyEvseDelegate::SendEVNotDetectedEvent()
         CHIP_ERROR error = LogEvent(event, mEndpointId, eventNumber);
 
         if (CHIP_NO_ERROR != error) {
-            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, error.Format());
+            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(error));
         }
     });
 
@@ -1137,7 +1175,7 @@ Status EnergyEvseDelegate::SendEnergyTransferStartedEvent()
 
         CHIP_ERROR error = LogEvent(event, mEndpointId, eventNumber);
         if (CHIP_NO_ERROR != error) {
-            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, error.Format());
+            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(error));
         }
     });
 
@@ -1172,7 +1210,7 @@ Status EnergyEvseDelegate::SendEnergyTransferStoppedEvent(EnergyTransferStoppedR
 
         CHIP_ERROR error = LogEvent(event, mEndpointId, eventNumber);
         if (CHIP_NO_ERROR != error) {
-            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, error.Format());
+            PRINTF_DEBUG("Unable to send notify event: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(error));
         }
     });
 
@@ -1294,7 +1332,7 @@ CHIP_ERROR EnergyEvseDelegate::SearchNextChargeTargetAcrossDays(BitMask<EnergyEv
             continue;
         }
 
-        PRINTF_DEBUG("Error during FindNextTarget: %" CHIP_ERROR_FORMAT, err.Format());
+        PRINTF_DEBUG("Error during FindNextTarget: %" CHIP_ERROR_FORMAT, CHIP_ERR_FMT(err));
         done = true;
     }
 
@@ -1371,7 +1409,7 @@ CHIP_ERROR EnergyEvseDelegate::ComputeChargingSchedule()
 
     CHIP_ERROR err = CHIP_NO_ERROR;
 
-    BitMask<EnergyEvse::TargetDayOfWeekBitmap> dayOfWeekMap = 0;
+    BitMask<EnergyEvse::TargetDayOfWeekBitmap> dayOfWeekMap;
     ReturnErrorOnFailure(chip::app::Clusters::DeviceEnergyManagement::GetLocalDayOfWeekNow(dayOfWeekMap));
 
     uint16_t minutesPastMidnightNow_m = 0;
@@ -1616,3 +1654,11 @@ void EnergyEvseDelegate::EvseCheckTimerExpiry([[maybe_unused]]System::Layer * sy
     auto * delegate = static_cast<EnergyEvseDelegate *>(callbackContext);
     delegate->OnEvseEnableTimerExpired();
 }
+
+#ifdef UNIT_TEST
+bool EnergyEvse_TargetSkippedAsPast(uint16_t targetMinutesPastMidnight, uint16_t minutesPastMidnightNow_m,
+                                    bool allowTargetsInPast)
+{
+    return TargetSkippedAsPast(targetMinutesPastMidnight, minutesPastMidnightNow_m, allowTargetsInPast);
+}
+#endif

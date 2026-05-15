@@ -36,6 +36,8 @@ int main(int argc, char **argv)
     run_test_energy_evse_delegate_impl_tests();
     run_test_energy_evse_delegate_impl_header_tests();
     run_test_energy_evse_targets_store_tests();
+    run_test_evse_targets_store_roundtrip_tests();
+    run_test_tlv_roundtrip_tests();
     run_test_electrical_power_measurement_delegate_tests();
     run_test_electrical_power_measurement_delegate_header_tests();
 

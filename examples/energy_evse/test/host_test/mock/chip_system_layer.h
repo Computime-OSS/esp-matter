@@ -3,27 +3,33 @@
 #include "chip_support.h"
 
 #include <cstdint>
+#include <functional>
 #include <vector>
 
 namespace chip {
+namespace DeviceLayer {
+class SystemLayerImpl;
+} // namespace DeviceLayer
+
 namespace System {
 namespace Clock {
 using Seconds32 = int32_t;
 } // namespace Clock
+
+using Layer                 = DeviceLayer::SystemLayerImpl;
+using TimerCompleteCallback = void (*)(Layer * systemLayer, void * appState);
 } // namespace System
 
 namespace DeviceLayer {
-
-class SystemLayerImpl;
-
-using TimerCallback = void (*)(SystemLayerImpl *, void *);
 
 class SystemLayerImpl {
 public:
     static SystemLayerImpl & Get();
 
-    CHIP_ERROR StartTimer(System::Clock::Seconds32 delay, TimerCallback onComplete, void * appState);
-    void CancelTimer(TimerCallback onComplete, void * appState);
+    CHIP_ERROR StartTimer(System::Clock::Seconds32 delay, System::TimerCompleteCallback onComplete, void * appState);
+    void CancelTimer(System::TimerCompleteCallback onComplete, void * appState);
+
+    void ScheduleLambda(const std::function<void()> & lambda);
 
     void FireExpiredTimersForTest();
     void ResetForTest();
@@ -33,11 +39,12 @@ public:
 private:
     struct Entry {
         System::Clock::Seconds32 delay;
-        TimerCallback callback;
-        void * context;
+        System::TimerCompleteCallback callback = nullptr;
+        void * context                         = nullptr;
     };
 
     std::vector<Entry> timers_;
+    std::vector<std::function<void()>> lambdas_;
     bool start_timer_fail_ = false;
 };
 
@@ -48,9 +55,5 @@ inline SystemLayerImpl & SystemLayer()
 }
 
 } // namespace DeviceLayer
-
-namespace System {
-using Layer = DeviceLayer::SystemLayerImpl;
-} // namespace System
 
 } // namespace chip

@@ -17,6 +17,20 @@
  */
 
 
+#ifdef UNIT_TEST
+#include "helpers.h"
+#include "chip_support.h"
+#include "chip_logging.h"
+#include "EnergyEvseTargetsStore.h"
+#include <app-common/zap-generated/attributes/Accessors.h>
+#include <app-common/zap-generated/cluster-objects.h>
+#include <app/server/Server.h>
+#include <lib/core/TLV.h>
+#include <lib/support/DefaultStorageKeyAllocator.h>
+#include <lib/support/SafeInt.h>
+#include <array>
+#include <cstddef>
+#else
 #include "helpers.h"
 
 #include <EnergyEvseDelegateImpl.h>
@@ -29,6 +43,7 @@
 #include <lib/support/SafeInt.h>
 #include <array>
 #include <cstddef>
+#endif
 
 using namespace chip;
 using namespace chip::app;
@@ -84,6 +99,10 @@ CHIP_ERROR EvseTargetsDelegate::DecodeChargingTargetStructFromTlv(TLV::TLVReader
             continue;
         }
         return CHIP_ERROR_UNEXPECTED_TLV_ELEMENT;
+    }
+    if (err == CHIP_END_OF_TLV)
+    {
+        return CHIP_NO_ERROR;
     }
     return err;
 }
@@ -227,7 +246,8 @@ CHIP_ERROR EvseTargetsDelegate::LoadTargets()
     mChargingTargetSchedulesList = DataModel::List<const Structs::ChargingTargetScheduleStruct::Type>(mChargingTargetSchedulesArray,
                                                                                                       chargingTargetSchedulesIdx);
 
-    return reader.VerifyEndOfContainer();
+    ReturnErrorOnFailure(reader.VerifyEndOfContainer());
+    return CHIP_NO_ERROR;
 }
 
 /**
@@ -449,11 +469,11 @@ EvseTargetsDelegate::SaveTargets(DataModel::List<const Structs::ChargingTargetSc
 
     ReturnErrorOnFailure(writer.EndContainer(arrayType));
 
-    auto len = static_cast<uint64_t>(writer.GetLengthWritten());
-    PRINTF_DEBUG("SaveTargets: length written 0x" ChipLogFormatX64, ChipLogValueX64(len));
-
     Platform::ScopedMemoryBuffer<uint8_t> finalizedBuffer;
     ReturnErrorOnFailure(writer.Finalize(finalizedBuffer));
+
+    const auto len = static_cast<uint64_t>(writer.GetLengthWritten());
+    PRINTF_DEBUG("SaveTargets: length written 0x" ChipLogFormatX64, ChipLogValueX64(len));
 
     if(mpTargetStore == nullptr){
         PRINTF_DEBUG("The target store is not SET!");

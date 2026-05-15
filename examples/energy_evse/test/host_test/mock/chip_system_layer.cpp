@@ -9,7 +9,7 @@ SystemLayerImpl & SystemLayerImpl::Get()
     return layer;
 }
 
-CHIP_ERROR SystemLayerImpl::StartTimer(System::Clock::Seconds32 delay, TimerCallback onComplete, void * appState)
+CHIP_ERROR SystemLayerImpl::StartTimer(System::Clock::Seconds32 delay, System::TimerCompleteCallback onComplete, void * appState)
 {
     if (start_timer_fail_) {
         return CHIP_ERROR_INTERNAL;
@@ -18,7 +18,7 @@ CHIP_ERROR SystemLayerImpl::StartTimer(System::Clock::Seconds32 delay, TimerCall
     return CHIP_NO_ERROR;
 }
 
-void SystemLayerImpl::CancelTimer(TimerCallback onComplete, void * appState)
+void SystemLayerImpl::CancelTimer(System::TimerCompleteCallback onComplete, void * appState)
 {
     for (auto it = timers_.begin(); it != timers_.end();) {
         if (it->callback == onComplete && it->context == appState) {
@@ -27,6 +27,11 @@ void SystemLayerImpl::CancelTimer(TimerCallback onComplete, void * appState)
             ++it;
         }
     }
+}
+
+void SystemLayerImpl::ScheduleLambda(const std::function<void()> & lambda)
+{
+    lambdas_.push_back(lambda);
 }
 
 void SystemLayerImpl::FireExpiredTimersForTest()
@@ -38,11 +43,20 @@ void SystemLayerImpl::FireExpiredTimersForTest()
             entry.callback(this, entry.context);
         }
     }
+
+    const auto pendingLambdas = lambdas_;
+    lambdas_.clear();
+    for (const auto & fn : pendingLambdas) {
+        if (fn) {
+            fn();
+        }
+    }
 }
 
 void SystemLayerImpl::ResetForTest()
 {
     timers_.clear();
+    lambdas_.clear();
     start_timer_fail_ = false;
 }
 

@@ -7,18 +7,6 @@
 #include <utility>
 
 namespace chip {
-struct CharSpan {
-    const char * data = nullptr;
-    size_t size = 0;
-
-    static CharSpan fromCharString(const char *s)
-    {
-        CharSpan span;
-        span.data = s;
-        span.size = s ? std::strlen(s) : 0;
-        return span;
-    }
-};
 
 struct MutableCharSpan {
     char * data = nullptr;

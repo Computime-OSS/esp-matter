@@ -1,5 +1,6 @@
 #pragma once
 
+#include "chip_logging.h"
 #include "app/clusters/energy-evse-server/energy-evse-server.h"
 #include "app-common/zap-generated/cluster-objects.h"
 #include "chip_support.h"

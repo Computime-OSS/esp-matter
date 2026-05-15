@@ -10,28 +10,6 @@
 namespace chip {
 using Percent100ths = uint16_t;
 
-template <typename T>
-class Optional {
-public:
-    Optional() = default;
-    explicit Optional(T value) : mHasValue(true), mValue(value) {}
-
-    bool HasValue() const { return mHasValue; }
-
-    T & Value() { return mValue; }
-    const T & Value() const { return mValue; }
-
-private:
-    bool mHasValue = false;
-    T mValue{};
-};
-
-template <typename T>
-constexpr Optional<std::decay_t<T>> MakeOptional(T && value)
-{
-    return Optional<std::decay_t<T>>(std::forward<T>(value));
-}
-
 namespace app {
 namespace Clusters {
 namespace detail {

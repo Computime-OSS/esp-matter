@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app-common/zap-generated/cluster-enums.h"
 #include "chip_support.h"
 
 #include <cstdint>
@@ -8,33 +9,6 @@
 
 namespace chip {
 namespace app {
-namespace Clusters {
-namespace EnergyEvse {
-namespace Structs {
-
-struct ChargingTargetStruct {
-    struct Type {
-        uint16_t targetTimeMinutesPastMidnight = 0;
-        uint8_t dayOfWeek = 0;
-    };
-
-    struct DecodableType {
-        uint16_t targetTimeMinutesPastMidnight = 0;
-        uint8_t dayOfWeek = 0;
-
-        operator Type() const
-        {
-            Type out;
-            out.targetTimeMinutesPastMidnight = targetTimeMinutesPastMidnight;
-            out.dayOfWeek                     = dayOfWeek;
-            return out;
-        }
-    };
-};
-
-} // namespace Structs
-} // namespace EnergyEvse
-} // namespace Clusters
 
 namespace DataModel {
 
@@ -51,16 +25,23 @@ Nullable<T> MakeNullable(const T & value)
 
 template <typename T>
 struct List {
-    const T * data  = nullptr;
-    size_t count  = 0;
+    const T * data = nullptr;
+    size_t count   = 0;
 
     List() = default;
     List(const T * d, size_t c) : data(d), count(c) {}
+
+    template <typename U>
+    List(const List<U> & other) : data(other.data), count(other.count)
+    {}
 
     size_t size() const { return count; }
 
     const T * begin() const { return data; }
     const T * end() const { return data + count; }
+
+    T * begin() { return const_cast<T *>(data); }
+    T * end() { return const_cast<T *>(data) + count; }
 };
 
 template <typename T>
@@ -120,5 +101,39 @@ private:
 };
 
 } // namespace DataModel
+
+namespace Clusters {
+namespace EnergyEvse {
+namespace Structs {
+
+namespace ChargingTargetStruct {
+
+struct Type {
+    uint16_t targetTimeMinutesPastMidnight = 0;
+    Optional<Percent> targetSoC;
+    Optional<int64_t> addedEnergy;
+};
+
+using DecodableType = Type;
+
+} // namespace ChargingTargetStruct
+
+namespace ChargingTargetScheduleStruct {
+
+struct Type {
+    BitMask<TargetDayOfWeekBitmap> dayOfWeekForSequence;
+    DataModel::List<const ChargingTargetStruct::Type> chargingTargets;
+};
+
+struct DecodableType {
+    BitMask<TargetDayOfWeekBitmap> dayOfWeekForSequence;
+    DataModel::DecodableList<ChargingTargetStruct::DecodableType> chargingTargets;
+};
+
+} // namespace ChargingTargetScheduleStruct
+
+} // namespace Structs
+} // namespace EnergyEvse
+} // namespace Clusters
 } // namespace app
 } // namespace chip

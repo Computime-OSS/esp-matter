@@ -24,5 +24,7 @@ void run_test_device_energy_management_delegate_impl_tests(void);
 void run_test_energy_evse_delegate_impl_tests(void);
 void run_test_energy_evse_delegate_impl_header_tests(void);
 void run_test_energy_evse_targets_store_tests(void);
+void run_test_evse_targets_store_roundtrip_tests(void);
+void run_test_tlv_roundtrip_tests(void);
 void run_test_electrical_power_measurement_delegate_tests(void);
 void run_test_electrical_power_measurement_delegate_header_tests(void);
