@@ -6,11 +6,6 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
-#include <common_macros.h>
-#include "soc/io_mux_reg.h"
-
-#include "get_readable_time.h"
-
 namespace CT {
 namespace Charger {
 
@@ -41,7 +36,7 @@ enum class AuthType_t
 } // namespace Charger
 } // namespace CT
 
-#define ENABLE_CT_LOG
+// #define ENABLE_CT_LOG
 
 #ifdef	ENABLE_CT_LOG
     #define PRINTF_DEBUG(format, ...)		ESP_LOGI("CT", "%s(%d)\n" LOG_COLOR(LOG_COLOR_CYAN) format LOG_RESET_COLOR "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)

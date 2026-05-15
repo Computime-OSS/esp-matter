@@ -16,7 +16,11 @@
 #include <device.h>
 #include <protocols/Protocols.h>
 
+#include <common_macros.h>
+
 #include "helpers.h"
+#include "get_readable_time.h"
+
 #include "chargerManager.h"
 
 #include <EnergyTimeUtils.h>
